@@ -1,34 +1,44 @@
-package com.example.a2;
+package com.example.a2.activity;
 
 import androidx.fragment.app.FragmentActivity;
 
 import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.a2.R;
+import com.example.a2.controller.FirebaseHelper;
+import com.example.a2.helper.CustomInfoWindowAdaptor;
+import com.example.a2.helper.SiteRenderer;
+import com.example.a2.model.Site;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.ValueEventListener;
+import com.google.maps.android.clustering.Cluster;
+import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.ClusterRenderer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
@@ -42,6 +52,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected LocationRequest mLocationRequest;
 
     private FirebaseHelper firebaseHelper;
+    private ArrayList<Site> siteArrayList;
+
+    private ClusterManager<Site> clusterManager;
+    private SiteRenderer siteRender;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +74,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    @Override
+    public boolean onClusterClick(Cluster cluster) {
+        return false;
+    }
+
+    @Override
+    public boolean onClusterItemClick(ClusterItem item) {
+        return false;
+    }
+
     // This solves the asynchronous problem with fetch data
     public interface FirebaseHelperCallback {
         void onDataChanged(List<Site> siteList);
     }
 
     public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
+
+        Drawable drawable = getResources().getDrawable(R.drawable.site_cluster_large) ;
 
 
         firebaseHelper.getAllSites(new FirebaseHelperCallback() {
@@ -75,10 +101,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 for (Site site: siteList
                      ) {
 
-                    mMap.addMarker(new MarkerOptions().title(site.getName()).position(site.getLatLng()));
+                    mMap.addMarker(new MarkerOptions().title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
+                    mMap.setInfoWindowAdapter(new CustomInfoWindowAdaptor(MapsActivity.this));
                 }
             }
         });
+    }
+
+    private BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
+        Canvas canvas = new Canvas();
+        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        canvas.setBitmap(bitmap);
+        drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+        drawable.draw(canvas);
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 
     /**
@@ -102,6 +138,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         });
 
+        // set up cluster
+//        setUpClusters();
+
+        // Init the camera
         // Initialize the camera
         LatLng rmit = new LatLng(10.72978835877818, 106.69307559874231);
 
@@ -130,14 +170,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        // set on marker listener
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-//                System.out.println(marker.getP);
-                return false;
-            }
-        });
+
+
+
+    }
+
+    public void setUpClusters(){
+
+
+
+
+        clusterManager = new ClusterManager<>(this, mMap);
+        siteRender = new SiteRenderer(this,mMap, clusterManager);
+        clusterManager.setRenderer((ClusterRenderer<Site>) clusterManager);
+        clusterManager.setAnimation(true);
+        clusterManager.setOnClusterClickListener(this);
+        clusterManager.setOnClusterItemClickListener( this);
+
+        mMap.setOnMarkerClickListener(clusterManager);
+
 
 
     }
@@ -179,18 +230,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Create the Site object
                     Site site = new Site();
-                    site.setLatLng(latLng);
+                    site.setLatitude(latLng.latitude);
+                    site.setLongitude(latLng.longitude);
                     site.setName(siteText.getText().toString());
                     // If not null, then add it to the db
                     firebaseHelper.addSite(site); ;
 
-                    mMap.addMarker(new MarkerOptions().title(site.getName()).position(site.getLatLng()));
+                    mMap.addMarker(new MarkerOptions().title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
 
                     // display another alert dialog
                     final AlertDialog dialog1 = new AlertDialog.Builder(this)
                             // validate the result of adding the item to the database
                             .setTitle(  "Success")
-//                            .setIcon(android.R.drawable.th.xml) //TODO: setIcon
+                            .setIcon(R.drawable.thumb_up) //TODO: setIcon
                             .setMessage( "The site is successfully created" )
                             .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
                             .create();
