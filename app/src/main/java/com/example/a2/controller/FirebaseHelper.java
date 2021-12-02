@@ -54,8 +54,11 @@ public class FirebaseHelper {
 
                         for (QueryDocumentSnapshot documentSnapshot: queryDocumentSnapshots){
 
+                            System.out.println(User.USER_SUPERUSER + " superUser");
                             // create new site
-                            User user = new User(documentSnapshot.getString(User.USER_NAME), documentSnapshot.getString(User.USER_EMAIL));
+                            User user = new User(documentSnapshot.getString(User.USER_NAME),
+                                    documentSnapshot.getString(User.USER_EMAIL)
+                                    ,documentSnapshot.getBoolean(User.USER_SUPERUSER));
 
 
                             // add site to list
@@ -77,6 +80,7 @@ public class FirebaseHelper {
 
         userObject.put(User.USER_NAME , user.getName());
         userObject.put(User.USER_EMAIL, user.getEmail());
+        userObject.put(User.USER_SUPERUSER, user.getIsSuperUser());
 
         userCollection
                 .document(user.getName())

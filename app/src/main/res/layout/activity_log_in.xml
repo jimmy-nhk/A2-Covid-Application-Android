@@ -27,6 +27,7 @@
         android:id="@+id/editEmailLogInTxt"
         android:layout_width="276dp"
         android:layout_height="76dp"
+        android:inputType="textEmailAddress"
         android:hint="email"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,7 +37,7 @@
         app:layout_constraintVertical_bias="0.253" />
 
     <EditText
-        android:id="@+id/editText3"
+        android:id="@+id/passwordTxt"
         android:layout_width="276dp"
         android:layout_height="76dp"
 
@@ -61,7 +62,7 @@
         app:layout_constraintVertical_bias="0.535" />
 
     <TextView
-        android:id="@+id/errorTxt"
+        android:id="@+id/errorLoginTxt"
         android:layout_width="276dp"
         android:layout_height="50dp"
         android:text="Cannot found the account. Please try again."

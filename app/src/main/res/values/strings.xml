@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">A2</string>
+    <string name="app_name">Volunteer Site Application</string>
     <string name="title_activity_maps">MapsActivity</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="prompt_email">Email</string>

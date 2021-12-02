@@ -40,6 +40,7 @@
             android:id="@+id/editEmail"
             android:layout_width="276dp"
             android:layout_height="76dp"
+            android:inputType="textEmailAddress"
             android:layout_marginRight="30px"
             android:hint="Email" />
 
@@ -116,7 +117,6 @@
                 android:backgroundTint="@color/blue_phantom"
                 android:textColor="@color/white"
                 android:text="Create Account"
-                android:onClick="createAccount"
                 android:textStyle="bold" />
 
             <TextView

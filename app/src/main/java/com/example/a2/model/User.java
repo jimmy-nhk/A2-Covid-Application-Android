@@ -7,15 +7,24 @@ public class User implements Parcelable {
 
     private String name;
     private String email;
+    private boolean isSuperUser;
 
     public static final String USER_NAME ="name";
     public static final String USER_EMAIL ="email";
+    public static final String USER_SUPERUSER ="isSuperUser";
 
+    public boolean getIsSuperUser() {
+        return isSuperUser;
+    }
 
+    public void setSuperUser(boolean superUser) {
+        isSuperUser = superUser;
+    }
 
-    public User(String name, String email) {
+    public User(String name, String email, boolean isSuperUser) {
         this.name = name;
         this.email = email;
+        this.isSuperUser = isSuperUser;
     }
 
     public String getName() {

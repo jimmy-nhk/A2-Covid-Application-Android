@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
@@ -40,8 +41,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     public final static int REGISTER_CODE = 101;
 
     private EditText emailText;
-
-
+    private EditText passwordText;
+    private TextView errorLoginTxt;
 
     private static final int GOOGLE_SUCCESSFULLY_SIGN_IN = 1;
 
@@ -51,8 +52,10 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     private FirebaseAuth.AuthStateListener authStateListener;
     private GoogleApiClient googleApiClient;
 
-    String name, email;
+
     String idToken;
+
+    private SignInButton signInGoogleButton;
 
     private GoogleSignInClient mGoogleSignInClient;
     @Override
@@ -60,43 +63,11 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_in);
 
-        emailText = findViewById(R.id.editEmailLogInTxt);
+
+        attachComponents();
+        initService();
 
 
-
-        firebaseAuth = FirebaseAuth.getInstance();
-        //this is where we start the Auth state Listener to listen for whether the user is signed in or not
-        authStateListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                // Get signedIn user
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-
-                //if user is signed in, we call a helper method to save the user details to Firebase
-                if (user != null) {
-                    // User is signed in
-                    // you could place other firebase code
-                    //logic to save the user details to Firebase
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
-                } else {
-                    // User is signed out
-                    Log.d(TAG, "onAuthStateChanged:signed_out");
-                }
-            }
-        };
-
-        GoogleSignInOptions gso =  new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.web_client_id))//you can also use R.string.default_web_client_id
-                .requestEmail()
-                .build();
-
-        googleApiClient=new GoogleApiClient.Builder(this)
-                .enableAutoManage(this, this)
-                .addApi(Auth.GOOGLE_SIGN_IN_API,gso)
-                .build();
-
-
-        SignInButton signInGoogleButton = findViewById(R.id.signInWithGoogle);
         signInGoogleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -109,10 +80,73 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
+    public void attachComponents(){
+        passwordText = findViewById(R.id.passwordTxt);
+        emailText = findViewById(R.id.editEmailLogInTxt);
+        errorLoginTxt = findViewById(R.id.errorLoginTxt);
+        errorLoginTxt.setVisibility(View.INVISIBLE);
+        signInGoogleButton = findViewById(R.id.signInWithGoogle);
+    }
+
+    public void initService(){
+        firebaseAuth = FirebaseAuth.getInstance();
+        //this is where we start the Auth state Listener to listen for whether the user is signed in or not
+        authStateListener = firebaseAuth -> {
+            // Get signedIn user
+            FirebaseUser user = firebaseAuth.getCurrentUser();
+
+            //if user is signed in, we call a helper method to save the user details to Firebase
+            if (user != null) {
+                // User is signed in
+                // you could place other firebase code
+                //logic to save the user details to Firebase
+                Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+            } else {
+                // User is signed out
+                Log.d(TAG, "onAuthStateChanged:signed_out");
+            }
+        };
+
+        GoogleSignInOptions gso =  new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.web_client_id))//you can also use R.string.default_web_client_id
+                .requestEmail()
+                .build();
+
+        googleApiClient=new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API,gso)
+                .build();
+    }
+
     // Normal log in
     public void normalLogIn(View view) {
 
-        //TODO: Scan over the database to validate the login
+        //TODO: Add user to list. Not yet setup
+
+        firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()){
+
+                            // Sign in success, update UI with signed-in user's information
+                            Log.d(TAG, "signInWithEmail:success");
+                            Toast.makeText(LogInActivity.this, "Authentication success", Toast.LENGTH_SHORT).show();
+
+                            FirebaseUser user = firebaseAuth.getCurrentUser();
+
+                            Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
+                            intent.putExtra("user" , new User("hello", "hello" , true));
+                            startActivity(intent);
+                        }else {
+
+                            // if sign in fails, display a message to the user
+                            Log.w(TAG, "signInWithEmail:failure", task.getException());
+                            Toast.makeText(LogInActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
     }
 
 
@@ -183,8 +217,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                             Log.d(TAG, Objects.requireNonNull(userFirebase).getEmail() + " email");
 
 
+                            // if create through gg, the user is super user
                             // create the user
-                            User user = new User(userFirebase.getDisplayName(), userFirebase.getEmail());
+                            User user = new User(userFirebase.getDisplayName(), userFirebase.getEmail(), true);
 
 
                             // update the UI
@@ -200,6 +235,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                 });
     }
 
+    // update UI
     private void updateUI(User user) {
 
         Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
