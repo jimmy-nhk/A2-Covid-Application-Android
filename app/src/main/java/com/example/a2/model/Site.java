@@ -15,11 +15,14 @@ public class Site implements ClusterItem, Parcelable {
     public final static String NAME = "name";
     public final static String LATITUDE = "latitude";
     public final static String LONGITUDE = "longitude";
-
+    public final static String DESCRIPTION = "description";
+    public final static String USERNAME = "username";
+    public final static String USERLIST = "userList";
 
     private String name;
     private double latitude;
     private double longitude;
+    private String description;
     private String username;
     private List<String> userList;
 
@@ -27,13 +30,16 @@ public class Site implements ClusterItem, Parcelable {
 
     public Site(){};
 
-    public Site( String username, String name, double latitude, double longitude, List<String> userList) {
+    public Site( String username, String name, double latitude, double longitude, List<String> userList, String description) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
         this.username = username;
         this.userList = userList;
+        this.description = description;
     }
+
+
 
     protected Site(Parcel in) {
 //        id = in.readInt();
@@ -42,6 +48,7 @@ public class Site implements ClusterItem, Parcelable {
         longitude = in.readDouble();
         username = in.readString();
         userList = in.createStringArrayList();
+        description = in.readString();
     }
 
     @Override
@@ -53,6 +60,7 @@ public class Site implements ClusterItem, Parcelable {
         dest.writeDouble(longitude);
         dest.writeString(username);
         dest.writeStringList(userList);
+        dest.writeString(description);
     }
 
     public static final Creator<Site> CREATOR = new Creator<Site>() {
@@ -67,13 +75,14 @@ public class Site implements ClusterItem, Parcelable {
         }
     };
 
-//    public int getId() {
-//        return id;
-//    }
-//
-//    public void setId(int id) {
-//        this.id = id;
-//    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     public String getName() {
         return name;
@@ -114,7 +123,7 @@ public class Site implements ClusterItem, Parcelable {
     @Nullable
     @Override
     public String getSnippet() {
-        return null;
+        return description;
     }
 
     @Override

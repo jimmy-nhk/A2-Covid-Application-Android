@@ -180,6 +180,15 @@ public class FirebaseHelper {
                             Site site = new Site();
 
                             site.setName(documentSnapshot.getString(Site.NAME));
+                            site.setDescription(documentSnapshot.getString(Site.DESCRIPTION));
+                            site.setUsername(documentSnapshot.getString(Site.USERNAME));
+
+
+                            try {
+                                site.setUserList((List<String>) documentSnapshot.get(Site.USERLIST));
+                            }catch (Exception e){
+
+                            }
 
 
                             // create new latlng

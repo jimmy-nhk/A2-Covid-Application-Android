@@ -44,6 +44,7 @@ import java.util.Objects;
 public class LogInActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
 
     public final static int REGISTER_CODE = 101;
+    public final static int MAPS_CODE = 201;
 
     private EditText emailText;
     private EditText passwordText;
@@ -223,40 +224,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         startActivityForResult(intent, REGISTER_CODE);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == REGISTER_CODE){
-
-            if (resultCode == RESULT_OK){
-
-                loadUsersFromDb(new FirebaseHelperCallback() {
-                    @Override
-                    public void onDataChanged(List<User> userList) {
-                        Log.d(LogInActivity.class.getName(), "successfully load db again");
-                    }
-                });
-
-                Log.d(TAG, userList.size() + " size after loaded");
-                emailText.setText(data.getExtras().get("email").toString());
-            }
-        }
-
-        // check for the user
-        if (requestCode == GOOGLE_SUCCESSFULLY_SIGN_IN){
-
-
-
-            // The Task returned from this call is always completed, no need to attach
-            // a listener.
-            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-            handleSignInResult(result);
-
-        }
-    }
-
-
     // handle sign in with google
     private void handleSignInResult(GoogleSignInResult result){
 
@@ -321,8 +288,56 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
 
         intent.putExtra("user",user );
-        startActivity(intent);
+        startActivityForResult(intent, MAPS_CODE);
     }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // check if from maps
+        if (requestCode == MAPS_CODE){
+
+            if (resultCode == RESULT_OK){
+
+                firebaseAuth.signOut();
+                Log.d(TAG, "Signout successfully");
+            }
+        }
+
+        // check if from register
+        if (requestCode == REGISTER_CODE){
+
+            if (resultCode == RESULT_OK){
+
+                loadUsersFromDb(new FirebaseHelperCallback() {
+                    @Override
+                    public void onDataChanged(List<User> userList) {
+                        Log.d(LogInActivity.class.getName(), "successfully load db again");
+                    }
+                });
+
+                Log.d(TAG, userList.size() + " size after loaded");
+                emailText.setText(data.getExtras().get("email").toString());
+                return;
+            }
+        }
+
+        // check if from google
+        if (requestCode == GOOGLE_SUCCESSFULLY_SIGN_IN){
+
+
+
+            // The Task returned from this call is always completed, no need to attach
+            // a listener.
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+
+            return;
+        }
+    }
+
 
 
     @Override
