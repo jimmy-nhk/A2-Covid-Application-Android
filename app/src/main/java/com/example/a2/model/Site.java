@@ -8,6 +8,7 @@ import android.os.Parcelable;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterItem;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Site implements ClusterItem, Parcelable {
@@ -28,7 +29,9 @@ public class Site implements ClusterItem, Parcelable {
 
 
 
-    public Site(){};
+    public Site(){
+        userList = new ArrayList<>();
+    };
 
     public Site( String username, String name, double latitude, double longitude, List<String> userList, String description) {
         this.name = name;

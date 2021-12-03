@@ -15,6 +15,7 @@ import com.example.a2.activity.MapsActivity;
 import com.example.a2.model.Site;
 import com.example.a2.model.User;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
 import java.util.List;
@@ -28,6 +29,15 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
     private boolean isCurrentUserAOwner;
     private User currentUser;
     private List<Site> siteList;
+    private Marker marker;
+
+    public Marker getMarker() {
+        return marker;
+    }
+
+    public void setMarker(Marker marker) {
+        this.marker = marker;
+    }
 
     public CustomInfoWindowAdaptor(Context mContext, boolean isCurrentUserAOwner , User currentUser , List<Site> siteList) {
         this.mContext = mContext;
@@ -46,8 +56,8 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
 
-        TextView numberOfPeople = view.findViewById(R.id.numberPeopleText);
-        numberOfPeople.setText("10");
+//        TextView numberOfPeople = view.findViewById(R.id.numberPeopleText);
+//        numberOfPeople.setText("10");
 
         view.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
 
@@ -97,6 +107,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
     @Override
     public View getInfoContents(@NonNull Marker marker) {
         renderWindowText(marker, mWindow);
+        this.marker = marker;
         mWindow.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
         return mWindow;
     }
@@ -105,6 +116,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
     @Override
     public View getInfoWindow(@NonNull Marker marker) {
         renderWindowText(marker, mWindow);
+        this.marker = marker;
         mWindow.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
         return mWindow;
     }

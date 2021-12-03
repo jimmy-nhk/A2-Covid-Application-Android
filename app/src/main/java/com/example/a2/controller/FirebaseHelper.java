@@ -36,6 +36,7 @@ public class FirebaseHelper {
 
     private Activity activity;
     private List<Site> siteList;
+    private List<User> userList;
 
     public FirebaseHelper(Activity activity) {
 
@@ -44,6 +45,39 @@ public class FirebaseHelper {
         siteCoordinatesCollection = db.collection(COLLECTION_PATH);
         userCollection = db.collection(USER_COLLECTION);
         siteList = new ArrayList<>();
+        userList = new ArrayList<>();
+
+    }
+
+
+    public void getAllUsersMapsActivity(MapsActivity.FirebaseCallback firebaseCallback){
+
+        ArrayList<User> userArrayList = new ArrayList<>();
+        userCollection.get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+
+                        for (QueryDocumentSnapshot documentSnapshot: queryDocumentSnapshots){
+
+                            System.out.println(User.USER_SUPERUSER + " superUser");
+                            // create new site
+                            User user = new User(documentSnapshot.getString(User.USER_NAME),
+                                    documentSnapshot.getString(User.USER_EMAIL)
+                                    ,documentSnapshot.getBoolean(User.USER_SUPERUSER));
+
+
+                            // add site to list
+                            userArrayList.add(user);
+                        }
+
+                        userList = userArrayList;
+
+                        firebaseCallback.onDataChanged(userArrayList);
+                    }
+                });
+
+
     }
 
 

@@ -1,7 +1,9 @@
 package com.example.a2.activity;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
@@ -30,6 +32,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
 import com.google.maps.android.clustering.Cluster;
@@ -40,14 +43,16 @@ import com.google.maps.android.clustering.view.ClusterRenderer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
+         GoogleMap.OnInfoWindowLongClickListener,
+        GoogleMap.OnInfoWindowCloseListener
+        ,ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
 
     private static final long UPDATE_INTERVAL = 10 * 1000; //10s
     private static final long FASTEST_INTERVAL = 2 * 1000; //2s
-    public static final String RESTAURANT_API = "https://my-json-server.typicode.com/jimmy-nhk/json-server";
     public static final String TAG = "MapsActivity";
 
     protected FusedLocationProviderClient client;
@@ -55,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private FirebaseHelper firebaseHelper;
     private List<Site> siteList;
+    private List<User> userList;
 
     private ClusterManager<Site> clusterManager;
     private SiteRenderer siteRender;
@@ -62,7 +68,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private User currentUser;
     private boolean isLeader;
     private boolean isSuperUser;
-    private Dialog dialog;
+    private Dialog createSiteDialog;
+    private Dialog registerSiteDialog;
 
     private Drawable drawable;
 
@@ -86,6 +93,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Init the object
         firebaseHelper = new FirebaseHelper(MapsActivity.this);
         siteList = new ArrayList<>();
+        userList = new ArrayList<>();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -95,25 +103,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    public boolean onClusterClick(Cluster cluster) {
-        return false;
+    public void onInfoWindowLongClick(@NonNull Marker marker) {
+        marker.hideInfoWindow();
+        onInfoWindowClose(marker);
+        Toast.makeText(MapsActivity.this, "Long click" , Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public boolean onClusterItemClick(ClusterItem item) {
-        return false;
+    public void onInfoWindowClose(@NonNull Marker marker) {
+        marker.hideInfoWindow();
+        Toast.makeText(MapsActivity.this, "Close click" , Toast.LENGTH_SHORT).show();
+
     }
 
-
-    public void closeDialog(View view) {
-        dialog.dismiss();
+    // This solves the asynchronous problem with fetch data
+    public interface FirebaseCallback {
+        void onDataChanged(List<User> users);
     }
 
-    // sign out
-    public void signOut(View view) {
-        Intent intent = new Intent(MapsActivity.this, LogInActivity.class);
-        setResult(RESULT_OK, intent);
-        finish();
+    public void loadUsersFromDb(FirebaseCallback firebaseCallback){
+
+        firebaseHelper.getAllUsersMapsActivity(new FirebaseCallback() {
+            @Override
+            public void onDataChanged(List<User> users) {
+                userList = users;
+            }
+        });
     }
 
     // This solves the asynchronous problem with fetch data
@@ -121,10 +136,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         void onDataChanged(List<Site> siteList);
     }
 
+
+
     public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
 
 
+
         firebaseHelper.getAllSites(new FirebaseHelperCallback() {
+
             @Override
             public void onDataChanged(List<Site> sites) {
 
@@ -142,27 +161,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    public BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
-        Canvas canvas = new Canvas();
-        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        canvas.setBitmap(bitmap);
-        drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
-        drawable.draw(canvas);
-        return BitmapDescriptorFactory.fromBitmap(bitmap);
-    }
-
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
         loadSitesFromDb(new FirebaseHelperCallback() {
+
             @Override
             public void onDataChanged(List<Site> siteList) {
                 Log.d(TAG, siteList.toString());
 
             }
 
+        });
+
+        loadUsersFromDb(new FirebaseCallback() {
+            @Override
+            public void onDataChanged(List<User> users) {
+                Log.d(TAG, "Successfully loaded the userList");
+            }
         });
 
         // set up cluster
@@ -175,8 +193,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(rmit, 15));
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
-
-
         // set on map click
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
@@ -184,24 +200,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 if (isLeader){
-                    //TODO: Announce the alertdialog instead
-                    // display another alert dialog
-                    final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
-                            // validate the result of adding the item to the database
-                            .setTitle("Fail")
-                            .setIcon(R.drawable.thumb_up)
-                            .setMessage("The user already has joined or created his site.")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
 
-                    dialog1.show();
+//                    final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
+//                            // validate the result of adding the item to the database
+//                            .setTitle("Fail")
+//                            .setIcon(R.drawable.thumb_up)
+//                            .setMessage("The user already has joined or created his site.")
+//                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+//                            .create();
+//
+//                    dialog1.show();
                     return;
                 }
 
                 // show the dialog
                 showDialogForCreateSite(latLng);
-
-
 
 //                Toast.makeText(MapsActivity.this, latLng.latitude + " , " + latLng.longitude, Toast.LENGTH_LONG).show();
             }
@@ -212,12 +225,189 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // set custom marker window info
         mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
 
-        Button registerBtn = customInfoWindowAdaptor.getmWindow().findViewById(R.id.registerBtn);
+
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(@NonNull Marker marker) {
+                Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
+
+                showDialogForRegisterSite(marker);
+            }
+        });
 
 
-        Button seeDetailsBtn = customInfoWindowAdaptor.getmWindow().findViewById(R.id.seeDetailsBtn);
+    }
+
+    public boolean checkIfUserInDb(String username) {
+        // validate if the user in the db
+        for (User u: userList
+        ) {
+            Log.d(TAG, u.getName() + " name checked");
 
 
+            if (u.getName().equals(username)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Site findCurrentSite(Marker marker){
+        // get the latlng
+        LatLng latLng = marker.getPosition();
+
+
+        Log.d(TAG, latLng.latitude + " current latitude");
+        // loop through the site to get the current site
+        for (Site s :
+                siteList) {
+
+
+            Log.d(TAG, s.getLatitude() + " site latitude");
+            if (s.getLatitude() == latLng.latitude && s.getLongitude() == latLng.longitude){
+                Log.d(TAG, latLng.longitude + "  longitude");
+
+                Log.d(TAG, s.getLatitude() + " site latitude in if condition");
+
+                return s;
+            }
+
+        }
+        return new Site();
+    }
+
+    public void showDialogForRegisterSite(Marker marker){
+
+        registerSiteDialog = new Dialog(MapsActivity.this);
+        registerSiteDialog.setContentView(R.layout.register_site_layout);
+
+        registerSiteDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
+
+        registerSiteDialog.show();
+
+        EditText usernameTxt = registerSiteDialog.findViewById(R.id.userNameRegisterSiteText);
+
+        Button btn_yes_register = registerSiteDialog.findViewById(R.id.btn_yes_register);
+
+
+
+
+        btn_yes_register.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                boolean ifUsernameExists = checkIfUserInDb(usernameTxt.getText().toString());
+
+                Log.d(TAG, ifUsernameExists + " checked");
+
+
+
+                // validate username
+                if (!ifUsernameExists){
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("The username is not found in the database!")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    registerSiteDialog.dismiss();
+                    dialog1.show();
+                    return;
+                }
+
+                // validate if the user already registered for this site
+
+
+                Site site = findCurrentSite(marker);
+
+                Log.d(TAG, site.getUserList() + " site longitude after loop");
+
+                // validate the leader cannot join his site
+                if (site.getUsername().equals(usernameTxt.getText().toString())){
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("The username is already the leader of this site!")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    registerSiteDialog.dismiss();
+                    dialog1.show();
+                    return;
+                }
+
+                // variable to define if the user exists in site
+                boolean isUserExistsInSite = false;
+
+                //check if the site has that user
+                try {
+                    for (String username: site.getUserList()){
+                        Log.d(TAG, username + " username in loop");
+
+                        if (username.equals(usernameTxt.getText().toString())){
+                            isUserExistsInSite = true;
+                            break;
+                        }
+                    }
+
+                    Log.d(TAG, isUserExistsInSite + " is user exists in loop");
+
+                    // validate if user is in that site
+                    if (isUserExistsInSite){
+
+                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                                .setTitle("Error")
+                                .setMessage("The username already registered!")
+                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                                .create();
+
+                        registerSiteDialog.dismiss();
+                        dialog1.show();
+                        return;
+                    }
+
+                } catch (Exception e){
+                    Log.d(TAG, e.getMessage());
+                }
+
+
+                List<String> usernameList = site.getUserList();
+
+                // update the site
+                //validate the username list in site
+                try {
+                    usernameList.add(usernameTxt.getText().toString());
+                } catch (Exception e){
+                    usernameList = new ArrayList<>();
+                    usernameList.add(usernameTxt.getText().toString());
+                }
+
+                site.setUserList(usernameList);
+                firebaseHelper.addSite(site);
+
+                // load again the site
+                loadSitesFromDb(new FirebaseHelperCallback() {
+
+
+                    @Override
+                    public void onDataChanged(List<Site> sites) {
+                        Log.d(TAG, "Loaded after added successfully");
+                        siteList = sites;
+                    }
+                });
+
+                // display the result alert dialog
+                final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                        // validate the result of adding the item to the database
+                        .setTitle("Success")
+                        .setIcon(R.drawable.thumb_up)
+                        .setMessage("The user is successfully registered this site")
+                        .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                        .create();
+                registerSiteDialog.dismiss();
+
+                dialog1.show();
+            }
+        });
     }
 
     public boolean ifUserIsAbleToSeeDetails(){
@@ -260,23 +450,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // dialog used to create the new site
     private void showDialogForCreateSite(LatLng latLng) {
 
-        dialog = new Dialog(this);
-        dialog.setContentView(R.layout.layout_custom_dialog);
+        createSiteDialog = new Dialog(this);
+        createSiteDialog.setContentView(R.layout.layout_custom_dialog);
 
-        dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
+        createSiteDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
 
-        dialog.show();
+        createSiteDialog.show();
 
 
-        EditText siteNameTxt = dialog.findViewById(R.id.txttite);
+        EditText siteNameTxt = createSiteDialog.findViewById(R.id.txttite);
 
-        EditText descriptionTxt = dialog.findViewById(R.id.txtDesc);
+        EditText descriptionTxt = createSiteDialog.findViewById(R.id.txtDesc);
 
-        Button btn_yes = dialog.findViewById(R.id.btn_yes);
+        Button btn_yes = createSiteDialog.findViewById(R.id.btn_yes);
 
         // Check the type of user
 
-        //TODO: Check if the user is the owner of the site
 //        if (isSuperUser) {
 //            btn_yes.setEnabled(false);
 //            btn_yes.setTextColor(Color.parseColor("#808080"));
@@ -291,7 +480,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
                         .create();
 
-                dialog.dismiss();
+                createSiteDialog.dismiss();
                 dialog1.show();
                 return;
             }
@@ -315,6 +504,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // load again the site
             loadSitesFromDb(new FirebaseHelperCallback() {
+
                 @Override
                 public void onDataChanged(List<Site> siteList) {
                     Log.d(TAG, "Loaded after added successfully");
@@ -329,10 +519,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .setMessage("The site is successfully created")
                     .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
                     .create();
-            dialog.dismiss();
+            createSiteDialog.dismiss();
 
             dialog1.show();
         });
 
+    }
+
+    @Override
+    public boolean onClusterClick(Cluster cluster) {
+        return false;
+    }
+
+    @Override
+    public boolean onClusterItemClick(ClusterItem item) {
+        return false;
+    }
+
+
+    public void closeDialog(View view) {
+        createSiteDialog.dismiss();
+    }
+
+    // sign out
+    public void signOut(View view) {
+        Intent intent = new Intent(MapsActivity.this, LogInActivity.class);
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+
+    public void closeRegisterSiteDialog(View view) {
+        registerSiteDialog.dismiss();
+        return;
+    }
+
+
+    public BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
+        Canvas canvas = new Canvas();
+        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        canvas.setBitmap(bitmap);
+        drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+        drawable.draw(canvas);
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 }
