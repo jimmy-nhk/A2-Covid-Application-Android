@@ -8,31 +8,35 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
+import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.model.User;
 import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.SignInButton;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 
@@ -49,8 +53,11 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     private static final String TAG = "LogInActivity";
 
     private FirebaseAuth firebaseAuth;
+    private FirebaseHelper firebaseHelper;
+
     private FirebaseAuth.AuthStateListener authStateListener;
     private GoogleApiClient googleApiClient;
+    private List<User> userList;
 
 
     String idToken;
@@ -66,6 +73,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         attachComponents();
         initService();
+
+        userList = firebaseHelper.getUserList();
 
 
         signInGoogleButton.setOnClickListener(new View.OnClickListener() {
@@ -89,7 +98,10 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
     public void initService(){
+        userList = new ArrayList<>();
+        // init firebase services
         firebaseAuth = FirebaseAuth.getInstance();
+        firebaseHelper = new FirebaseHelper(LogInActivity.this);
         //this is where we start the Auth state Listener to listen for whether the user is signed in or not
         authStateListener = firebaseAuth -> {
             // Get signedIn user
@@ -116,40 +128,81 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                 .enableAutoManage(this, this)
                 .addApi(Auth.GOOGLE_SIGN_IN_API,gso)
                 .build();
+
     }
 
     // Normal log in
     public void normalLogIn(View view) {
 
-        //TODO: Add user to list. Not yet setup
+        // validate in case it cannot sign in with authentication
+        try {
+            firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()){
 
-        firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()){
+                                // Sign in success, update UI with signed-in user's information
+                                Log.d(TAG, "signInWithEmail:success");
+                                Toast.makeText(LogInActivity.this, "Authentication success", Toast.LENGTH_SHORT).show();
 
-                            // Sign in success, update UI with signed-in user's information
-                            Log.d(TAG, "signInWithEmail:success");
-                            Toast.makeText(LogInActivity.this, "Authentication success", Toast.LENGTH_SHORT).show();
+                                FirebaseUser userFirebase = firebaseAuth.getCurrentUser();
 
-                            FirebaseUser user = firebaseAuth.getCurrentUser();
+                                User user;
+                                try {
+                                    user = searchUser(userFirebase.getEmail());
+                                    Log.d(TAG, user.getEmail().toString());
 
-                            Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
-                            intent.putExtra("user" , new User("hello", "hello" , true));
-                            startActivity(intent);
-                        }else {
+                                    Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
+                                    intent.putExtra("user" , user);
+                                    startActivity(intent);
 
-                            // if sign in fails, display a message to the user
-                            Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LogInActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+                                } catch (Exception e){
+                                    Log.d(TAG, "Cannot validate the user in firestone");
+
+                                }
+
+                            }else {
+
+                                // if sign in fails, display a message to the user
+                                Log.w(TAG, "signInWithEmail:failure", task.getException());
+                                Toast.makeText(LogInActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+                            }
                         }
-                    }
-                });
+                    });
+
+        } catch (Exception e){
+            errorLoginTxt.setVisibility(View.VISIBLE);
+            errorLoginTxt.setText("Cannot log in");
+            return;
+        }
+
 
     }
 
+    public User searchUser(String mail){
 
+//        Log.d(TAG, firebaseHelper.getUserList().get(0).getEmail() + " test email");
+//
+//
+//        Log.d(TAG, mail + " mail");
+
+        // validate the user
+        for (User u: userList
+             ) {
+
+//            Log.d(TAG, u.getEmail() + " mail");
+            if (u.getEmail().equals(mail)){
+                Log.d(TAG, u.getName() + " name");
+                return u;
+            }
+        }
+
+        return null;
+    }
+
+
+    // move to sign up page
     public void signUpActivity(View view) {
 
         Intent intent = new Intent(LogInActivity.this, RegisterActivity.class);
@@ -180,6 +233,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
 
+    // handle sign in with google
     private void handleSignInResult(GoogleSignInResult result){
 
         // Check if the result is successful
@@ -249,6 +303,29 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
+
+//    // This solves the asynchronous problem with fetch data
+//    public interface FirebaseHelperCallback {
+//        void onDataChanged(List<User> userList);
+//    }
+//
+//    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
+//
+//        try {
+//            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
+//
+//                @Override
+//                public void onDataChanged(List<User> users) {
+//
+//                    userList = users;
+//                }
+//            });
+//        }catch (Exception e){
+//            Log.d(TAG, e.getMessage());
+//        }
+//
+//
+//    }
 
 
 }

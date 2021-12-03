@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 public class FirebaseHelper {
 
 
@@ -34,6 +35,7 @@ public class FirebaseHelper {
 
     private Activity activity;
     private List<Site> siteList;
+    private List<User> userList;
 
     public FirebaseHelper(Activity activity) {
 
@@ -42,9 +44,49 @@ public class FirebaseHelper {
         siteCoordinatesCollection = db.collection(COLLECTION_PATH);
         userCollection = db.collection(USER_COLLECTION);
         siteList = new ArrayList<>();
+        userList = new ArrayList<>();
+        getAllUsers();
     }
 
-    public void getAllUsers(RegisterActivity.FirebaseHelperCallback callback){
+
+    public List<User> getUserList() {
+        return userList;
+    }
+
+    public void setUserList(List<User> userList) {
+        this.userList = userList;
+    }
+
+    public void getAllUsers(){
+
+        ArrayList<User> userArrayList = new ArrayList<>();
+        userCollection.get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+
+                        for (QueryDocumentSnapshot documentSnapshot: queryDocumentSnapshots){
+
+                            System.out.println(User.USER_SUPERUSER + " superUser");
+                            // create new site
+                            User user = new User(documentSnapshot.getString(User.USER_NAME),
+                                    documentSnapshot.getString(User.USER_EMAIL)
+                                    ,documentSnapshot.getBoolean(User.USER_SUPERUSER));
+
+
+                            // add site to list
+                            userArrayList.add(user);
+                        }
+
+                        userList = userArrayList;
+                    }
+                });
+
+    }
+
+
+    //TODO: fix the get all users for register like login
+    public void getAllUsersForRegister(RegisterActivity.FirebaseHelperCallback callback){
 
         ArrayList<User> userArrayList = new ArrayList<>();
         userCollection.get()
@@ -168,6 +210,11 @@ public class FirebaseHelper {
                 });
     }
 
+    public CollectionReference getUserCollection() {
+        return userCollection;
+    }
 
-
+    public void setUserCollection(CollectionReference userCollection) {
+        this.userCollection = userCollection;
+    }
 }
