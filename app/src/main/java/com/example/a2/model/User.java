@@ -1,7 +1,10 @@
 package com.example.a2.model;
 
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import androidx.annotation.RequiresApi;
 
 public class User implements Parcelable {
 
@@ -43,11 +46,16 @@ public class User implements Parcelable {
         this.email = email;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     protected User(Parcel in) {
+        name = in.readString();
+        email = in.readString();
+        isSuperUser = in.readBoolean();
     }
 
 
     public static final Creator<User> CREATOR = new Creator<User>() {
+        @RequiresApi(api = Build.VERSION_CODES.Q)
         @Override
         public User createFromParcel(Parcel in) {
             return new User(in);
@@ -64,7 +72,21 @@ public class User implements Parcelable {
         return 0;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+
+        dest.writeString(name);
+        dest.writeString(email);
+        dest.writeBoolean(isSuperUser);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", isSuperUser=" + isSuperUser +
+                '}';
     }
 }

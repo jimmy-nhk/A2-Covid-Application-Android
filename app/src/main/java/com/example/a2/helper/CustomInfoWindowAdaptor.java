@@ -41,6 +41,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         //TODO: Action of button
         Button registerBtn = view.findViewById(R.id.registerBtn);
 
+        registerBtn.setActivated(false);
         Button seeListVolunteer = view.findViewById(R.id.seeListBtn);
 
     }

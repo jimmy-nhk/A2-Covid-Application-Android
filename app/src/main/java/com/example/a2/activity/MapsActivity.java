@@ -3,13 +3,20 @@ package com.example.a2.activity;
 import androidx.fragment.app.FragmentActivity;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.a2.R;
@@ -17,6 +24,7 @@ import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
 import com.example.a2.helper.SiteRenderer;
 import com.example.a2.model.Site;
+import com.example.a2.model.User;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -56,6 +64,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private ClusterManager<Site> clusterManager;
     private SiteRenderer siteRender;
+    private User user;
+    private boolean isSuperUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +74,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // get the intent from login
+        Intent intent = getIntent();
+        user = (User) intent.getParcelableExtra("user");
+        Log.d(TAG, user.toString());
+        isSuperUser = user.getIsSuperUser();
+
+
         // Init the object
         firebaseHelper = new FirebaseHelper(MapsActivity.this);
+        siteArrayList = new ArrayList<>();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -82,6 +100,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onClusterItemClick(ClusterItem item) {
         return false;
+    }
+
+
+    public void closeDialog(View view) {
+        dialog2.dismiss();
     }
 
     // This solves the asynchronous problem with fetch data
@@ -117,15 +140,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -172,13 +187,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-
     }
 
     public void setUpClusters(){
-
-
-
 
         clusterManager = new ClusterManager<>(this, mMap);
         siteRender = new SiteRenderer(this,mMap, clusterManager);
@@ -193,72 +204,101 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    Dialog dialog2;
     // dialog used to create the new site
     private void showDialogForCreateSite(LatLng latLng) {
 
-        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
-        // Set up the input
-        EditText siteText = new EditText(this);
+        dialog2 = new Dialog(this);
+        dialog2.setContentView(R.layout.layout_custom_dialog);
 
-        siteText.setInputType(InputType.TYPE_CLASS_TEXT);
-        dialogBuilder.setView(siteText);
-        dialogBuilder.setTitle("Add Location");
-        dialogBuilder.setMessage("Please fill in the site's name to create the site.");
+        dialog2.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
 
-        Map<String, Object> location = new HashMap<>();
-        location.put("latitude", latLng.latitude);
-        location.put("longitude", latLng.longitude);
+        dialog2.show();
 
 
+        EditText title = dialog2.findViewById(R.id.txttite);
 
-        dialogBuilder.setMessage("")
+        Log.d(TAG, title.getText().toString());
 
-                .setPositiveButton("Yes", (dialog, which) -> {
+        Button btn_yes = dialog2.findViewById(R.id.btn_yes);
 
+        btn_yes.setClickable(false);
+        btn_yes.setTextColor(Color.parseColor("#808080"));
 
-                    // validate if the site name is null
-                    if (siteText.getText().toString().equals("")){
-                        final AlertDialog dialog1 = new AlertDialog.Builder(this)
-                                .setTitle("Error")
-                                .setMessage("The site title is null! Cannot create the site")
-                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                                .create();
-
-                        dialog1.show();
-                        return;
-                    }
-
-                    // Create the Site object
-                    Site site = new Site();
-                    site.setLatitude(latLng.latitude);
-                    site.setLongitude(latLng.longitude);
-                    site.setName(siteText.getText().toString());
-                    // If not null, then add it to the db
-                    firebaseHelper.addSite(site); ;
-
-                    mMap.addMarker(new MarkerOptions().title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
-
-                    // display another alert dialog
-                    final AlertDialog dialog1 = new AlertDialog.Builder(this)
-                            // validate the result of adding the item to the database
-                            .setTitle(  "Success")
-                            .setIcon(R.drawable.thumb_up) //TODO: setIcon
-                            .setMessage( "The site is successfully created" )
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
-
-                    dialog1.show();
-
-
-                })
-
-                // A null listener allows the button to dismiss the dialogBuilder and take no further action.
-                .setNegativeButton("No", (dialog, which) -> {
-
-                    return;
-                })
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+//        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+//        // Set up the input
+//        EditText siteText = new EditText(this);
+//        siteText.setHint("Name of the site");
+//
+//
+//        siteText.setInputType(InputType.TYPE_CLASS_TEXT);
+//        dialogBuilder.setView(siteText);
+//
+////        // Set up the input
+////        EditText descriptionText = new EditText(this);
+////
+////        descriptionText.setHint("Description of the site");
+////        descriptionText.setInputType(InputType.TYPE_CLASS_TEXT);
+////        dialogBuilder.setView(descriptionText);
+//
+//
+//        dialogBuilder.setTitle("Add Location");
+//        dialogBuilder.setMessage("Please fill in the site's name to create the site.");
+//
+//        Map<String, Object> location = new HashMap<>();
+//        location.put("latitude", latLng.latitude);
+//        location.put("longitude", latLng.longitude);
+//
+//
+//
+//        dialogBuilder.setMessage("")
+//
+//                .setPositiveButton("Yes", (dialog, which) -> {
+//
+//
+//                    // validate if the site name is null
+//                    if (siteText.getText().toString().equals("")){
+//                        final AlertDialog dialog1 = new AlertDialog.Builder(this)
+//                                .setTitle("Error")
+//                                .setMessage("The site title is null! Cannot create the site")
+//                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+//                                .create();
+//
+//                        dialog1.show();
+//                        return;
+//                    }
+//
+//                    // Create the Site object
+//                    Site site = new Site();
+//                    site.setLatitude(latLng.latitude);
+//                    site.setLongitude(latLng.longitude);
+//                    site.setName(siteText.getText().toString());
+//                    // If not null, then add it to the db
+//                    firebaseHelper.addSite(site); ;
+//
+//                    mMap.addMarker(new MarkerOptions().title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
+//
+//                    // display another alert dialog
+//                    final AlertDialog dialog1 = new AlertDialog.Builder(this)
+//                            // validate the result of adding the item to the database
+//                            .setTitle(  "Success")
+//                            .setIcon(R.drawable.thumb_up) //TODO: setIcon
+//                            .setMessage( "The site is successfully created" )
+//                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+//                            .create();
+//
+//                    dialog1.show();
+//
+//
+//                })
+//
+//                // A null listener allows the button to dismiss the dialogBuilder and take no further action.
+//                .setNegativeButton("No", (dialog, which) -> {
+//
+//                    return;
+//                })
+//                .setIcon(android.R.drawable.ic_dialog_alert)
+//                .show();
 
     }
 }

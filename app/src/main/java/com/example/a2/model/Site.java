@@ -8,31 +8,51 @@ import android.os.Parcelable;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterItem;
 
+import java.util.List;
+
 public class Site implements ClusterItem, Parcelable {
 
     public final static String NAME = "name";
     public final static String LATITUDE = "latitude";
     public final static String LONGITUDE = "longitude";
 
-    private int id;
+
     private String name;
     private double latitude;
     private double longitude;
+    private String username;
+    private List<String> userList;
+
+
 
     public Site(){};
 
-    public Site(int id, String name, double latitude, double longitude) {
-        this.id = id;
+    public Site( String username, String name, double latitude, double longitude, List<String> userList) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.username = username;
+        this.userList = userList;
     }
 
     protected Site(Parcel in) {
-        id = in.readInt();
+//        id = in.readInt();
         name = in.readString();
         latitude = in.readDouble();
         longitude = in.readDouble();
+        username = in.readString();
+        userList = in.createStringArrayList();
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+
+//        dest.writeInt(id);
+        dest.writeString(name);
+        dest.writeDouble(latitude);
+        dest.writeDouble(longitude);
+        dest.writeString(username);
+        dest.writeStringList(userList);
     }
 
     public static final Creator<Site> CREATOR = new Creator<Site>() {
@@ -47,13 +67,13 @@ public class Site implements ClusterItem, Parcelable {
         }
     };
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
+//    public int getId() {
+//        return id;
+//    }
+//
+//    public void setId(int id) {
+//        this.id = id;
+//    }
 
     public String getName() {
         return name;
@@ -103,16 +123,22 @@ public class Site implements ClusterItem, Parcelable {
         return 0;
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-
-        dest.writeInt(id);
-//        dest.writeParcelable(latLng, flags);
-        dest.writeString(name);
-        dest.writeDouble(latitude);
-        dest.writeDouble(longitude);
-
-//        dest.writeString(dateCreated);
-//        dest.writeStringList(participants);
+    public String getUsername() {
+        return username;
     }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public List<String> getUserList() {
+        return userList;
+    }
+
+    public void setUserList(List<String> userList) {
+        this.userList = userList;
+    }
+
+
+
 }

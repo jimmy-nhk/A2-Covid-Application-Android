@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -15,7 +16,11 @@ import android.widget.Toast;
 
 import com.example.a2.R;
 import com.example.a2.controller.FirebaseHelper;
+import com.example.a2.helper.CustomInfoWindowAdaptor;
+import com.example.a2.model.Site;
 import com.example.a2.model.User;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
@@ -23,6 +28,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -33,7 +39,7 @@ public class RegisterActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private FirebaseHelper firebaseHelper;
-    private List<User> users;
+    private List<User> userList;
 
     private TextView errorTxt;
     private CheckBox isSuperUser;
@@ -51,24 +57,11 @@ public class RegisterActivity extends AppCompatActivity {
         attachComponents();
         initService();
 
-        // load all the current users in the db to validate
-        loadUsersFromDb(new FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<User> userList) {
-                Log.d(TAG, userList.toString());
-            }
-        });
-
-
 
         signUpBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-
-                Log.d(TAG, "Here");
-
-
+                Log.d(TAG, "signUpBtn");
 
                 // validate name
                 if (!validateUserName(usernameText.getText().toString())){
@@ -142,7 +135,7 @@ public class RegisterActivity extends AppCompatActivity {
     // validate user name
     private boolean validateUserName(String username){
 
-        for (User user: users
+        for (User user: userList
              ) {
             if (username.equals(user.getName())){
                 return false;
@@ -154,7 +147,7 @@ public class RegisterActivity extends AppCompatActivity {
     // validate user email
     private boolean validateMail(String mail){
 
-        for (User user: users
+        for (User user: userList
         ) {
             if (mail.equals(user.getEmail())){
                 return false;
@@ -163,23 +156,6 @@ public class RegisterActivity extends AppCompatActivity {
         return true;
     }
 
-
-    // This solves the asynchronous problem with fetch data
-    public interface FirebaseHelperCallback {
-        void onDataChanged(List<User> siteList);
-    }
-
-    public void loadUsersFromDb(RegisterActivity.FirebaseHelperCallback myCallback) {
-
-        firebaseHelper.getAllUsersForRegister(new RegisterActivity.FirebaseHelperCallback() {
-
-            @Override
-            public void onDataChanged(List<User> userList) {
-
-                users = userList;
-            }
-        });
-    }
 
     // validate password
     private boolean validatePassword() {
@@ -203,11 +179,37 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
 
+    public interface FirebaseHelperCallback {
+        void onDataChanged(List<User> users);
+    }
+
+    public void loadUsersFromDb(RegisterActivity.FirebaseHelperCallback myCallback) {
+
+
+        firebaseHelper.getAllUsersForRegister(new RegisterActivity.FirebaseHelperCallback() {
+            @Override
+            public void onDataChanged(List<User> users) {
+
+                userList = users;
+            }
+        });
+    }
+
+
     public void initService(){
         // Init firestone
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         firebaseHelper = new FirebaseHelper(RegisterActivity.this);
+
+        userList = new ArrayList<>();
+
+        loadUsersFromDb(new FirebaseHelperCallback() {
+            @Override
+            public void onDataChanged(List<User> users) {
+                Log.d(RegisterActivity.class.getName(), "Load user register successfully");
+            }
+        });
     }
 
     public void attachComponents(){

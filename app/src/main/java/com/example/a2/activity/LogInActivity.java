@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -74,7 +75,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         attachComponents();
         initService();
 
-        userList = firebaseHelper.getUserList();
+
 
 
         signInGoogleButton.setOnClickListener(new View.OnClickListener() {
@@ -98,7 +99,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
     public void initService(){
-        userList = new ArrayList<>();
+
         // init firebase services
         firebaseAuth = FirebaseAuth.getInstance();
         firebaseHelper = new FirebaseHelper(LogInActivity.this);
@@ -118,6 +119,15 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                 Log.d(TAG, "onAuthStateChanged:signed_out");
             }
         };
+
+        userList = new ArrayList<>();
+
+        loadUsersFromDb(new FirebaseHelperCallback() {
+            @Override
+            public void onDataChanged(List<User> userList) {
+                Log.d(TAG, "Successfully added");
+            }
+        });
 
         GoogleSignInOptions gso =  new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.web_client_id))//you can also use R.string.default_web_client_id
@@ -149,6 +159,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                                 FirebaseUser userFirebase = firebaseAuth.getCurrentUser();
 
                                 User user;
+                                Log.d(TAG, userFirebase.getEmail() + " mail1");
+
                                 try {
                                     user = searchUser(userFirebase.getEmail());
                                     Log.d(TAG, user.getEmail().toString());
@@ -180,18 +192,20 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
+
     public User searchUser(String mail){
 
-//        Log.d(TAG, firebaseHelper.getUserList().get(0).getEmail() + " test email");
-//
-//
-//        Log.d(TAG, mail + " mail");
+        Log.d(TAG, userList.get(0).getEmail() + " test email");
 
+
+        Log.d(TAG, mail + " mail2");
+
+        Log.d(TAG, userList.size() + " size");
         // validate the user
         for (User u: userList
              ) {
 
-//            Log.d(TAG, u.getEmail() + " mail");
+            Log.d(TAG, u.getEmail() + " mail3");
             if (u.getEmail().equals(mail)){
                 Log.d(TAG, u.getName() + " name");
                 return u;
@@ -216,12 +230,22 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         if (requestCode == REGISTER_CODE){
 
             if (resultCode == RESULT_OK){
+
+                loadUsersFromDb(new FirebaseHelperCallback() {
+                    @Override
+                    public void onDataChanged(List<User> userList) {
+                        Log.d(LogInActivity.class.getName(), "successfully load db again");
+                    }
+                });
+
+                Log.d(TAG, userList.size() + " size after loaded");
                 emailText.setText(data.getExtras().get("email").toString());
             }
         }
 
         // check for the user
         if (requestCode == GOOGLE_SUCCESSFULLY_SIGN_IN){
+
 
 
             // The Task returned from this call is always completed, no need to attach
@@ -281,6 +305,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                         }else{
                             Log.w(TAG, "signInWithCredential" + task.getException().getMessage());
                             task.getException().printStackTrace();
+                            errorLoginTxt.setVisibility(View.VISIBLE);
+                            errorLoginTxt.setText("Cannot found the account in the system.\nPlease check again the password and mail");
                             Toast.makeText(LogInActivity.this, "Authentication failed.",
                                     Toast.LENGTH_SHORT).show();
                         }
@@ -294,7 +320,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
 
-        intent.putExtra("usr",user );
+        intent.putExtra("user",user );
         startActivity(intent);
     }
 
@@ -304,28 +330,29 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
+
 //    // This solves the asynchronous problem with fetch data
-//    public interface FirebaseHelperCallback {
-//        void onDataChanged(List<User> userList);
-//    }
-//
-//    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
-//
-//        try {
-//            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
-//
-//                @Override
-//                public void onDataChanged(List<User> users) {
-//
-//                    userList = users;
-//                }
-//            });
-//        }catch (Exception e){
-//            Log.d(TAG, e.getMessage());
-//        }
-//
-//
-//    }
+    public interface FirebaseHelperCallback {
+        void onDataChanged(List<User> userList);
+    }
+
+    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
+
+        try {
+            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
+
+                @Override
+                public void onDataChanged(List<User> users) {
+
+                    userList = users;
+                }
+            });
+        }catch (Exception e){
+            Log.d(TAG, e.getMessage());
+        }
+
+
+    }
 
 
 }

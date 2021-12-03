@@ -5,6 +5,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.a2.activity.LogInActivity;
 import com.example.a2.activity.MapsActivity;
 import com.example.a2.activity.RegisterActivity;
 import com.example.a2.model.Site;
@@ -35,7 +36,6 @@ public class FirebaseHelper {
 
     private Activity activity;
     private List<Site> siteList;
-    private List<User> userList;
 
     public FirebaseHelper(Activity activity) {
 
@@ -44,20 +44,10 @@ public class FirebaseHelper {
         siteCoordinatesCollection = db.collection(COLLECTION_PATH);
         userCollection = db.collection(USER_COLLECTION);
         siteList = new ArrayList<>();
-        userList = new ArrayList<>();
-        getAllUsers();
     }
 
 
-    public List<User> getUserList() {
-        return userList;
-    }
-
-    public void setUserList(List<User> userList) {
-        this.userList = userList;
-    }
-
-    public void getAllUsers(){
+    public void getAllUsersForLogin(LogInActivity.FirebaseHelperCallback callback){
 
         ArrayList<User> userArrayList = new ArrayList<>();
         userCollection.get()
@@ -78,14 +68,13 @@ public class FirebaseHelper {
                             userArrayList.add(user);
                         }
 
-                        userList = userArrayList;
+                        callback.onDataChanged(userArrayList);
                     }
                 });
 
     }
 
 
-    //TODO: fix the get all users for register like login
     public void getAllUsersForRegister(RegisterActivity.FirebaseHelperCallback callback){
 
         ArrayList<User> userArrayList = new ArrayList<>();
@@ -177,7 +166,6 @@ public class FirebaseHelper {
 
     public void getAllSites(MapsActivity.FirebaseHelperCallback callback){
 
-
         // fetch the data
         siteCoordinatesCollection
                 .get()
@@ -210,11 +198,7 @@ public class FirebaseHelper {
                 });
     }
 
-    public CollectionReference getUserCollection() {
-        return userCollection;
-    }
 
-    public void setUserCollection(CollectionReference userCollection) {
-        this.userCollection = userCollection;
-    }
+
+
 }
