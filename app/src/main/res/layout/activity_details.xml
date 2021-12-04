@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.DetailsActivity"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_weight="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Volunteers"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_weight="2"/>
+
+    </LinearLayout>
+
+
+    <TextView
+        android:layout_marginTop="30px"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RMIT"
+        android:textAlignment="center"
+        android:textSize="30dp" />
+
+    <TableLayout
+        android:layout_marginTop="150px"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dip"
+        android:layout_marginRight="20dip"
+        android:stretchColumns="3"
+
+        >
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Leader:"
+                android:textSize="20dp"
+                android:layout_weight="1"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Leader:"
+                android:textSize="20dp"
+
+                android:textAlignment="center"
+                android:layout_weight="3"
+                />
+
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Latitude:"
+                android:textSize="20dp"
+
+                android:layout_weight="1"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Latitude"
+                android:textSize="20dp"
+
+                android:textAlignment="center"
+                android:layout_weight="3"
+                />
+
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Longitude:"
+                android:layout_weight="1"
+                android:textSize="20dp"
+
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Longitude"
+                android:textAlignment="center"
+                android:textSize="20dp"
+
+                android:layout_weight="3"
+                />
+
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="157dp"
+                android:layout_height="200px"
+                android:layout_weight="1"
+                android:text="Number of volunteers:"
+
+                android:textSize="20dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="170px"
+                android:layout_marginTop="30px"
+
+                android:text="0"
+                android:textAlignment="center"
+                android:inputType="textMultiLine"
+                android:textSize="20dp"
+                android:layout_weight="3"
+                />
+
+        </TableRow>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="250px"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:text="Description:"
+                android:textSize="20dp"
+
+                android:layout_weight="2"
+                />
+
+            <EditText
+                android:layout_marginLeft="40px"
+                android:layout_width="400px"
+                android:layout_height="wrap_content"
+                android:text="Description"
+                android:textAlignment="center"
+                android:inputType="textMultiLine"
+                android:textSize="18dp"
+                android:layout_weight="4"
+                />
+
+        </LinearLayout>
+
+    </TableLayout>
+
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="100px"
+        android:weightSum="10">
+
+        <TextView
+            android:layout_width="100px"
+            android:layout_height="50dp"
+            android:textSize="20dp"
+            android:layout_weight="4"
+            />
+
+        <Button
+            android:id="@+id/editSiteBtn"
+            android:layout_width="400px"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|center_vertical"
+            android:text="Edit"
+            android:textSize="50px"
+            android:textStyle="bold"
+            />
+    </LinearLayout>
+
+
+</LinearLayout>

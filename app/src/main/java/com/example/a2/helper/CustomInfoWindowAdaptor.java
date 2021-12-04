@@ -56,13 +56,14 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
 
+        //TODO: Update the number of people in the site
 //        TextView numberOfPeople = view.findViewById(R.id.numberPeopleText);
 //        numberOfPeople.setText("10");
 
         view.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
 
 
-        //TODO: Action of button
+
 //        Button registerBtn = view.findViewById(R.id.registerBtn);
 //
 //        registerBtn.setEnabled(!isCurrentUserAOwner);

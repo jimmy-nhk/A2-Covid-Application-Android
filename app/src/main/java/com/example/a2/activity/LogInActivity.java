@@ -147,7 +147,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         // validate in case it cannot sign in with authentication
         try {
-            firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
+            //TODO: remember to change back to normal way
+//            firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
+            firebaseAuth.signInWithEmailAndPassword("2@gmail.com" , "123456")
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {

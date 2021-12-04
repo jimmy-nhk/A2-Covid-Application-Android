@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.example.a2.R;
@@ -54,6 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final long UPDATE_INTERVAL = 10 * 1000; //10s
     private static final long FASTEST_INTERVAL = 2 * 1000; //2s
     public static final String TAG = "MapsActivity";
+    public static final int DETAILS_CODE = 301;
 
     protected FusedLocationProviderClient client;
     protected LocationRequest mLocationRequest;
@@ -231,10 +233,75 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onInfoWindowClick(@NonNull Marker marker) {
                 Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
 
-                showDialogForRegisterSite(marker);
+                showDialogDetailsRegister(marker);
             }
         });
 
+
+    }
+
+    public void showDialogDetailsRegister(Marker marker){
+
+        Dialog registerDetailsDialog = new Dialog(MapsActivity.this);
+        registerDetailsDialog.setContentView(R.layout.register_see_details_layout);
+
+        registerDetailsDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
+
+        registerDetailsDialog.show();
+
+
+        Button detailsBtn = registerDetailsDialog.findViewById(R.id.btn_details);
+        detailsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Site currentSite = findCurrentSite(marker);
+
+                // check if the current user is the owner of this site
+                if (currentSite.getUsername().equals(currentUser.getName())){
+
+                    //TODO: create another activity to see details
+                    Intent intent = new Intent(MapsActivity.this, DetailsActivity.class);
+                    intent.putExtra("user", currentUser);
+                    intent.putExtra("site", currentSite);
+                    startActivityForResult(intent, DETAILS_CODE);
+
+                    Toast.makeText(MapsActivity.this, "Successfully switch site", Toast.LENGTH_SHORT).show();
+                }else{
+
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("You are not the founder of this site!")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    registerDetailsDialog.dismiss();
+                    dialog1.show();
+                    return;
+
+                }
+            }
+        });
+
+        // init close btn
+        ImageButton closeBtn =  registerDetailsDialog.findViewById(R.id.btn_close);
+        closeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                registerDetailsDialog.dismiss();
+            }
+        });
+
+
+        // init register btn to show another dialog
+        Button registerBtn = registerDetailsDialog.findViewById(R.id.btn_register);
+        registerBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDialogForRegisterSite(marker);
+                registerDetailsDialog.dismiss();
+            }
+        });
 
     }
 
