@@ -13,8 +13,8 @@
         android:layout_height="wrap_content"
         android:text="Back"
         android:backgroundTint="@color/blue_phantom"
+        android:textColor="@color/white"
         android:textStyle="bold"
         android:onClick="signOut"
-        android:textColor="@color/white"
         />
 </fragment>

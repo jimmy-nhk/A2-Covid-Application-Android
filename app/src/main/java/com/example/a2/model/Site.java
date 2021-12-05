@@ -39,14 +39,14 @@ public class Site implements ClusterItem, Parcelable {
         this.numberPeopleTested = numberPeopleTested;
     }
 
-    public Site( String username, String name, double latitude, double longitude, ArrayList<String> userList, String description) {
+    public Site( String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
         this.description = description;
         this.username = username;
         this.userList = userList;
-        this.numberPeopleTested = 0;
+        this.numberPeopleTested = numberPeopleTested;
     }
 
 
@@ -67,7 +67,8 @@ public class Site implements ClusterItem, Parcelable {
         }
 
         // error occurs here ???
-        numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
+//        numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
+        numberPeopleTested = in.readInt();
         System.out.println(numberPeopleTested + " in create to parcel");
 
     }

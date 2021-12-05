@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -16,12 +15,16 @@ import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
+import com.example.a2.helper.CustomListAdapter;
 import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
 import com.example.a2.helper.SiteRenderer;
@@ -39,11 +42,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
@@ -63,7 +62,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final long UPDATE_INTERVAL = 10 * 1000; //10s
     private static final long FASTEST_INTERVAL = 2 * 1000; //2s
     public static final String TAG = "MapsActivity";
-    public static final int DETAILS_CODE = 301;
 
     protected FusedLocationProviderClient client;
     protected LocationRequest mLocationRequest;
@@ -77,6 +75,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private SiteRenderer siteRender;
 
     private User currentUser;
+    private Site currentSite;
     private boolean isLeader;
     private boolean isSuperUser;
     private Dialog createSiteDialog;
@@ -85,6 +84,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Drawable drawable;
 
     private CustomInfoWindowAdaptor customInfoWindowAdaptor;
+
+    /** Component for details dialog*/
+    private Button backBtn, listBtn, editBtn;
+
+    private TextView siteTitle, ownerSite,
+            siteLatitude, siteLongitude,siteDescription, numberPeopleSite;
+
+    private EditText  numberPeopleTested;
 
 
     @Override
@@ -119,71 +126,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    public void onInfoWindowLongClick(@NonNull Marker marker) {
-        marker.hideInfoWindow();
-        onInfoWindowClose(marker);
-        Toast.makeText(MapsActivity.this, "Long click" , Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onInfoWindowClose(@NonNull Marker marker) {
-        marker.hideInfoWindow();
-        Toast.makeText(MapsActivity.this, "Close click" , Toast.LENGTH_SHORT).show();
-
-    }
-
-    // This solves the asynchronous problem with fetch data
-    public interface FirebaseCallback {
-        void onDataChanged(List<User> users);
-    }
-
-    public void loadUsersFromDb(FirebaseCallback firebaseCallback){
-
-        firebaseHelper.getAllUsersMapsActivity(new FirebaseCallback() {
-            @Override
-            public void onDataChanged(List<User> users) {
-                userList = users;
-            }
-        });
-    }
-
-    // This solves the asynchronous problem with fetch data
-    public interface FirebaseHelperCallback {
-        void onDataChanged(List<Site> siteList);
-    }
-
-
-
-    public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
-        firebaseHelper.getAllSites(new FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<Site> sites) {
-                for (Site site : sites
-                ) {
-                    mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
-                }
-                // take the site
-                siteList = (ArrayList<Site>) sites;
-
-                // Find out the current user a owner
-                isLeader = ifUserIsAbleToSeeDetails();
-            }
-        });
-    }
-
-
-    @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
         loadSitesFromDb(new FirebaseHelperCallback() {
-
             @Override
             public void onDataChanged(List<Site> siteList) {
                 Log.d(TAG, siteList.toString());
-
             }
-
         });
 
         loadUsersFromDb(new FirebaseCallback() {
@@ -207,26 +157,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-
-
+                // validate if the current user is a leader
                 if (isLeader){
-
-//                    final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
-//                            // validate the result of adding the item to the database
-//                            .setTitle("Fail")
-//                            .setIcon(R.drawable.thumb_up)
-//                            .setMessage("The user already has joined or created his site.")
-//                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-//                            .create();
-//
-//                    dialog1.show();
                     return;
                 }
 
                 // show the dialog
                 showDialogForCreateSite(latLng);
-
-//                Toast.makeText(MapsActivity.this, latLng.latitude + " , " + latLng.longitude, Toast.LENGTH_LONG).show();
             }
         });
 
@@ -252,7 +189,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    //show dialog of register and show details
     public void showDialogDetailsRegister(Marker marker){
+
+        // init current site
+        currentSite = findCurrentSite(marker);
 
         Dialog registerDetailsDialog = new Dialog(MapsActivity.this);
         registerDetailsDialog.setContentView(R.layout.register_see_details_layout);
@@ -261,29 +202,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         registerDetailsDialog.show();
 
-
         Button detailsBtn = registerDetailsDialog.findViewById(R.id.btn_details);
         detailsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                Site currentSite = findCurrentSite(marker);
-
-                System.out.println(currentSite.getUserList().size() + " hello");
-                System.out.println(currentSite.getNumberPeopleTested()+ " numple of people of maps");
-
                 Log.d(TAG, currentSite.getDescription() + " , " + currentSite.getName() + " name");
                 // check if the current user is the owner of this site
                 if (currentSite.getUsername().equals(currentUser.getName())){
 
-                    //TODO: create another activity to see details
-                    Intent intent = new Intent(MapsActivity.this, DetailsActivity.class);
-                    intent.putExtra("user", currentUser);
-//                    intent.putExtra("userList", currentSite.getUserList());
-                    intent.putExtra("site", currentSite);
-                    startActivityForResult(intent, DETAILS_CODE);
+                    registerDetailsDialog.dismiss();
 
-                    Toast.makeText(MapsActivity.this, "Successfully switch site", Toast.LENGTH_SHORT).show();
+                    // open the show details dialog
+                    showDetailsDialog(marker);
+
                 }else{
 
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
@@ -322,6 +254,124 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    private Dialog detailsDialog;
+
+    // show details dialog
+    public void showDetailsDialog(Marker marker) {
+
+        detailsDialog = new Dialog(MapsActivity.this);
+        detailsDialog.setContentView(R.layout.dialog_details);
+
+        detailsDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
+
+        detailsDialog.show();
+
+        // init the dialog and its function
+        attachComponentInDetailsDialog();
+        setTextToComponentInDetailsDialog();
+        setButtonClickerInDetailsDialog(marker);
+
+    }
+
+    // set button clicker in details dialog
+    private void setButtonClickerInDetailsDialog(Marker marker) {
+        // backBtn
+        backBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                detailsDialog.dismiss();
+            }
+        });
+
+        // edit btn
+        editBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentSite.setNumberPeopleTested(Integer.parseInt(numberPeopleTested.getText().toString()));
+                firebaseHelper.addSite(currentSite);
+
+                loadSitesFromDb(new FirebaseHelperCallback() {
+                    @Override
+                    public void onDataChanged(List<Site> sites) {
+                        siteList = (ArrayList<Site>) sites;
+
+                        // display the result alert dialog
+                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                                // validate the result of adding the item to the database
+                                .setTitle("Success")
+                                .setIcon(R.drawable.thumb_up)
+                                .setMessage("The site is successfully updated")
+                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                                .create();
+                        detailsDialog.dismiss();
+
+                        dialog1.show();
+                        Log.d(TAG, "Successfully loaded the db after modify");
+                    }
+                });
+                Log.d(TAG, "Edit button is clicked");
+            }
+        });
+
+        // list btn
+        listBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "Click list volunteer");
+                showListVolunteer();
+            }
+        });
+    }
+
+    private void showListVolunteer() {
+
+        Dialog listDialog = new Dialog(MapsActivity.this);
+        listDialog.setContentView(R.layout.volunteer_lists);
+
+
+        listDialog.show();
+
+        final ListView lv = (ListView) listDialog.findViewById(R.id.list_volunteer);
+        ArrayAdapter aAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, currentSite.getUserList());
+
+//        lv.setAdapter(new CustomListAdapter(this, currentSite.getUserList()));
+        lv.setAdapter(aAdapter);
+
+    }
+
+
+    // attach component in dialog
+    public void attachComponentInDetailsDialog(){
+
+        backBtn = detailsDialog.findViewById(R.id.backToMapsBtn);
+        listBtn = detailsDialog.findViewById(R.id.showListBtn);
+        editBtn = detailsDialog.findViewById(R.id.editSiteBtn);
+
+        siteTitle = detailsDialog.findViewById(R.id.siteTitle);
+        ownerSite = detailsDialog.findViewById(R.id.ownerSite);
+        siteLatitude = detailsDialog.findViewById(R.id.siteLatitude);
+        siteLongitude = detailsDialog.findViewById(R.id.siteLongitude);
+        numberPeopleSite = detailsDialog.findViewById(R.id.numberPeopleSiteTxt);
+        numberPeopleTested = detailsDialog.findViewById(R.id.numberPeopleTested);
+        siteDescription = detailsDialog.findViewById(R.id.siteDescription);
+    }
+
+
+    // set text
+    public void setTextToComponentInDetailsDialog(){
+
+        siteTitle.setText(currentSite.getTitle());
+        siteLatitude.setText(currentSite.getLatitude()+ "");
+        siteLongitude.setText(currentSite.getLongitude()+ "");
+        siteDescription.setText(currentSite.getDescription());
+        ownerSite.setText(currentSite.getUsername());
+
+        numberPeopleSite.setText(currentSite.getUserList().size() + " ");
+        numberPeopleTested.setText(currentSite.getNumberPeopleTested() + "");
+
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -336,55 +386,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public View onCreateView(@NonNull String name, @NonNull Context context, @NonNull AttributeSet attrs) {
         return super.onCreateView(name, context, attrs);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == DETAILS_CODE){
-
-            Log.d(TAG,"From details requestcode");
-            if (resultCode == RESULT_OK){
-
-                mMap.clear();
-
-                getAllSites();
-
-                for (Site s: siteList
-                     ) {
-                    Log.d(TAG,s.getNumberPeopleTested() + " test number people");
-                }
-
-                Log.d(TAG,"From details resultcode");
-
-                // reload the sites
-                loadSitesFromDb(new FirebaseHelperCallback() {
-                    @Override
-                    public void onDataChanged(List<Site> sites) {
-                        siteList = (ArrayList<Site>) sites;
-                        for (Site s: sites
-                             ) {
-                            System.out.println(s.getDescription() + " description");
-                        }
-
-
-
-                    }
-                });
-
-                // reload user
-                loadUsersFromDb(new FirebaseCallback() {
-                    @Override
-                    public void onDataChanged(List<User> users) {
-//                        userList = users;
-                        Log.d(TAG, "Successfully loaded the userList");
-                    }
-                });
-
-
-            }
-        }
     }
 
     public boolean checkIfUserInDb(String username) {
@@ -593,8 +594,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
-
     // dialog used to create the new site
     private void showDialogForCreateSite(LatLng latLng) {
 
@@ -712,46 +711,54 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    public void getAllSites(){
+    // This solves the asynchronous problem with fetch data
+    public interface FirebaseCallback {
+        void onDataChanged(List<User> users);
+    }
 
-        // fetch the data
-        db.collection("siteCoordinates")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+    public void loadUsersFromDb(FirebaseCallback firebaseCallback){
 
-                    @Override
-                    public void onComplete (@NonNull Task<QuerySnapshot> task) {
+        firebaseHelper.getAllUsersMapsActivity(new FirebaseCallback() {
+            @Override
+            public void onDataChanged(List<User> users) {
+                userList = users;
+            }
+        });
+    }
 
-                        for (QueryDocumentSnapshot documentSnapshot: task.getResult()){
+    // This solves the asynchronous problem with fetch data
+    public interface FirebaseHelperCallback {
+        void onDataChanged(List<Site> siteList);
+    }
+    // load the sites
+    public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
+        firebaseHelper.getAllSites(new FirebaseHelperCallback() {
+            @Override
+            public void onDataChanged(List<Site> sites) {
+                for (Site site : sites
+                ) {
+                    mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
+                }
+                // take the site
+                siteList = (ArrayList<Site>) sites;
 
-                            // create new site
-                            Site site = new Site();
+                // Find out the current user a owner
+                isLeader = ifUserIsAbleToSeeDetails();
+            }
+        });
+    }
 
-                            site.setName(documentSnapshot.getString(Site.NAME));
-                            site.setDescription(documentSnapshot.getString(Site.DESCRIPTION));
-                            site.setUsername(documentSnapshot.getString(Site.USERNAME));
+    @Override
+    public void onInfoWindowLongClick(@NonNull Marker marker) {
+        marker.hideInfoWindow();
+        onInfoWindowClose(marker);
+        Toast.makeText(MapsActivity.this, "Long click" , Toast.LENGTH_SHORT).show();
+    }
 
+    @Override
+    public void onInfoWindowClose(@NonNull Marker marker) {
+        marker.hideInfoWindow();
+        Toast.makeText(MapsActivity.this, "Close click" , Toast.LENGTH_SHORT).show();
 
-                            try {
-                                site.setNumberPeopleTested((Integer) documentSnapshot.get(Site.PEOPLETESTED));
-                                site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
-                            }catch (Exception e){
-
-                            }
-
-
-                            // create new latlng
-                            site.setLatitude(documentSnapshot.getDouble(Site.LATITUDE));
-                            site.setLongitude(documentSnapshot.getDouble(Site.LONGITUDE));
-
-
-
-                            // add site to list
-                            siteList.add(site);
-                            Log.d(TAG, "Loaded the siteList successfully");
-                        }
-
-                    }
-                });
     }
 }
