@@ -51,6 +51,12 @@ public class DetailsActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(DetailsActivity.this, MapsActivity.class);
+                ArrayList<Site> sites = new ArrayList<>();
+                sites.add(new Site(1));
+                sites.add(new Site(2));
+
+
+                intent.putExtra("siteList", sites );
                 setResult(RESULT_OK, intent);
                 finish();
             }

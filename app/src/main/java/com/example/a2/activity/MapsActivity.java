@@ -7,11 +7,13 @@ import androidx.fragment.app.FragmentActivity;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -37,6 +39,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
@@ -62,7 +69,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected LocationRequest mLocationRequest;
 
     private FirebaseHelper firebaseHelper;
-    private List<Site> siteList;
+    private FirebaseFirestore db;
+    private ArrayList<Site> siteList;
     private List<User> userList;
 
     private ClusterManager<Site> clusterManager;
@@ -85,6 +93,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        db = FirebaseFirestore.getInstance();
+
 
         // get the intent from login
         Intent intent = getIntent();
@@ -152,7 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
                 }
                 // take the site
-                siteList = sites;
+                siteList = (ArrayList<Site>) sites;
 
                 // Find out the current user a owner
                 isLeader = ifUserIsAbleToSeeDetails();
@@ -228,8 +239,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(@NonNull Marker marker) {
+                for (Site s: siteList
+                     ) {
+                    Log.d(TAG, s.getDescription() + " test sitelist");
+                }
                 Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
-
+                Log.d(TAG, marker.getSnippet() + " test marker");
                 showDialogDetailsRegister(marker);
             }
         });
@@ -308,39 +323,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (mMap != null){
+            mMap.clear();
+
+        }
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull String name, @NonNull Context context, @NonNull AttributeSet attrs) {
+        return super.onCreateView(name, context, attrs);
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == DETAILS_CODE){
 
-            System.out.println("From details requestcode");
+            Log.d(TAG,"From details requestcode");
             if (resultCode == RESULT_OK){
-                System.out.println("From details resultcode");
+
+                mMap.clear();
+
+                getAllSites();
+
+                for (Site s: siteList
+                     ) {
+                    Log.d(TAG,s.getNumberPeopleTested() + " test number people");
+                }
+
+                Log.d(TAG,"From details resultcode");
 
                 // reload the sites
                 loadSitesFromDb(new FirebaseHelperCallback() {
                     @Override
                     public void onDataChanged(List<Site> sites) {
-//                        siteList = sites;
+                        siteList = (ArrayList<Site>) sites;
                         for (Site s: sites
                              ) {
                             System.out.println(s.getDescription() + " description");
                         }
 
-                        //update again the info window
-                        customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
-                        // set custom marker window info
-                        mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
 
 
-                        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-                            @Override
-                            public void onInfoWindowClick(@NonNull Marker marker) {
-                                Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
-
-                                showDialogDetailsRegister(marker);
-                            }
-                        });
                     }
                 });
 
@@ -509,7 +538,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     @Override
                     public void onDataChanged(List<Site> sites) {
                         Log.d(TAG, "Loaded after added successfully");
-                        siteList = sites;
+                        siteList = (ArrayList<Site>) sites;
                     }
                 });
 
@@ -680,5 +709,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
         drawable.draw(canvas);
         return BitmapDescriptorFactory.fromBitmap(bitmap);
+    }
+
+
+    public void getAllSites(){
+
+        // fetch the data
+        db.collection("siteCoordinates")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+
+                    @Override
+                    public void onComplete (@NonNull Task<QuerySnapshot> task) {
+
+                        for (QueryDocumentSnapshot documentSnapshot: task.getResult()){
+
+                            // create new site
+                            Site site = new Site();
+
+                            site.setName(documentSnapshot.getString(Site.NAME));
+                            site.setDescription(documentSnapshot.getString(Site.DESCRIPTION));
+                            site.setUsername(documentSnapshot.getString(Site.USERNAME));
+
+
+                            try {
+                                site.setNumberPeopleTested((Integer) documentSnapshot.get(Site.PEOPLETESTED));
+                                site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
+                            }catch (Exception e){
+
+                            }
+
+
+                            // create new latlng
+                            site.setLatitude(documentSnapshot.getDouble(Site.LATITUDE));
+                            site.setLongitude(documentSnapshot.getDouble(Site.LONGITUDE));
+
+
+
+                            // add site to list
+                            siteList.add(site);
+                            Log.d(TAG, "Loaded the siteList successfully");
+                        }
+
+                    }
+                });
     }
 }

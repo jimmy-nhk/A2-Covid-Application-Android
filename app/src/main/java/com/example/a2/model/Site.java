@@ -19,6 +19,7 @@ public class Site implements ClusterItem, Parcelable {
     public final static String DESCRIPTION = "description";
     public final static String USERNAME = "username";
     public final static String USERLIST = "userList";
+    public final static String PEOPLETESTED = "numberPeopleTested";
 
     private String name;
     private double latitude;
@@ -34,13 +35,17 @@ public class Site implements ClusterItem, Parcelable {
         userList = new ArrayList<>();
     };
 
+    public Site(int numberPeopleTested){
+        this.numberPeopleTested = numberPeopleTested;
+    }
+
     public Site( String username, String name, double latitude, double longitude, ArrayList<String> userList, String description) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.description = description;
         this.username = username;
         this.userList = userList;
-        this.description = description;
         this.numberPeopleTested = 0;
     }
 
@@ -50,11 +55,17 @@ public class Site implements ClusterItem, Parcelable {
         name = in.readString();
         latitude = in.readDouble();
         longitude = in.readDouble();
+        description = in.readString();
         username = in.readString();
         userList = in.createStringArrayList();
-        System.out.println(userList.size() + "  userlist size in create to parcel");
 
-        description = in.readString();
+        try {
+            System.out.println(userList.size() + "  userlist size in create to parcel");
+
+        } catch (Exception e){
+
+        }
+
         // error occurs here ???
         numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
         System.out.println(numberPeopleTested + " in create to parcel");
@@ -68,11 +79,17 @@ public class Site implements ClusterItem, Parcelable {
         dest.writeString(name);
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
+        dest.writeString(description);
+
         dest.writeString(username);
         dest.writeStringList(userList);
-        System.out.println(userList.size() + "  userlist size in write to parcel");
 
-        dest.writeString(description);
+        try {
+            System.out.println(userList.size() + "  userlist size in write to parcel");
+
+        } catch (Exception e){
+
+        }
         dest.writeInt(numberPeopleTested);
         System.out.println(numberPeopleTested + " in write to parcel");
 

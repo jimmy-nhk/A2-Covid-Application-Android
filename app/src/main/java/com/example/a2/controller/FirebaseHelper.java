@@ -190,6 +190,8 @@ public class FirebaseHelper {
     }
 
 
+
+
     public void getAllSites(MapsActivity.FirebaseHelperCallback callback){
 
         // fetch the data
@@ -211,6 +213,7 @@ public class FirebaseHelper {
 
 
                             try {
+                                site.setNumberPeopleTested((Integer) documentSnapshot.get(Site.PEOPLETESTED));
                                 site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
                             }catch (Exception e){
 
