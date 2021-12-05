@@ -169,14 +169,6 @@ public class FirebaseHelper {
 
     public boolean addSite(Site site) {
 
-        // Initialize the siteObject to add
-        Map<String, Object> siteObject = new HashMap<>();
-
-        siteObject.put(Site.NAME,  site.getName());
-        siteObject.put(Site.LATITUDE, site.getLatitude());
-        siteObject.put(Site.LONGITUDE, site.getLongitude());
-
-
         siteCoordinatesCollection
                 .document(site.getName())
                 .set(site)
@@ -219,7 +211,7 @@ public class FirebaseHelper {
 
 
                             try {
-                                site.setUserList((List<String>) documentSnapshot.get(Site.USERLIST));
+                                site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
                             }catch (Exception e){
 
                             }

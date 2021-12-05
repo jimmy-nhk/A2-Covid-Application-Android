@@ -12,25 +12,27 @@
         android:layout_height="wrap_content">
 
         <Button
+            android:id="@+id/backToMapsBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Back"
             android:textColor="@color/white"
             android:textStyle="bold"
-            android:layout_weight="2"/>
+            android:layout_weight="1"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="4"/>
+            android:layout_weight="6"/>
 
         <Button
-            android:layout_width="wrap_content"
+            android:layout_width="280px"
             android:layout_height="wrap_content"
             android:text="Volunteers"
             android:textColor="@color/white"
+            android:id="@+id/showListBtn"
             android:textStyle="bold"
-            android:layout_weight="2"/>
+            android:layout_weight="1"/>
 
     </LinearLayout>
 
@@ -41,10 +43,11 @@
         android:layout_height="wrap_content"
         android:text="RMIT"
         android:textAlignment="center"
+        android:id="@+id/siteTitle"
         android:textSize="30dp" />
 
     <TableLayout
-        android:layout_marginTop="150px"
+        android:layout_marginTop="50px"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dip"
@@ -68,6 +71,7 @@
                 android:layout_height="50dp"
                 android:text="Leader:"
                 android:textSize="20dp"
+                android:id="@+id/ownerSite"
 
                 android:textAlignment="center"
                 android:layout_weight="3"
@@ -91,6 +95,7 @@
                 android:layout_height="50dp"
                 android:text="Latitude"
                 android:textSize="20dp"
+                android:id="@+id/siteLatitude"
 
                 android:textAlignment="center"
                 android:layout_weight="3"
@@ -113,6 +118,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="50dp"
                 android:text="Longitude"
+                android:id="@+id/siteLongitude"
                 android:textAlignment="center"
                 android:textSize="20dp"
 
@@ -125,21 +131,43 @@
 
             <TextView
                 android:layout_width="157dp"
-                android:layout_height="200px"
+                android:layout_height="150px"
                 android:layout_weight="1"
                 android:text="Number of volunteers:"
-
                 android:textSize="20dp" />
 
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="170px"
+                android:layout_height="150px"
                 android:layout_marginTop="30px"
-
+                android:id="@+id/numberPeopleSiteTxt"
                 android:text="0"
                 android:textAlignment="center"
-                android:inputType="textMultiLine"
                 android:textSize="20dp"
+                android:layout_weight="3"
+                />
+
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_width="157dp"
+                android:layout_height="200px"
+                android:layout_marginTop="-60px"
+                android:layout_weight="1"
+                android:text="Number of tested people:"
+                android:textSize="20dp" />
+
+            <EditText
+                android:layout_marginTop="-20px"
+                android:layout_width="wrap_content"
+                android:id="@+id/numberPeopleTested"
+                android:layout_height="170px"
+                android:text="0"
+                android:textAlignment="center"
+                android:textSize="20dp"
+                android:inputType="number"
                 android:layout_weight="3"
                 />
 
@@ -162,8 +190,9 @@
             <EditText
                 android:layout_marginLeft="40px"
                 android:layout_width="400px"
-                android:layout_height="wrap_content"
+                android:layout_height="200px"
                 android:text="Description"
+                android:id="@+id/siteDescription"
                 android:textAlignment="center"
                 android:inputType="textMultiLine"
                 android:textSize="18dp"
@@ -179,7 +208,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="100px"
+        android:layout_marginTop="10px"
         android:weightSum="10">
 
         <TextView

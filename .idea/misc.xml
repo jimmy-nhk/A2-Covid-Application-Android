@@ -13,7 +13,7 @@
         <entry key="app/src/main/res/drawable/site_cluster_large.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/thumb_up.xml" value="0.24114583333333334" />
         <entry key="app/src/main/res/font/open_sans.xml" value="0.21145833333333333" />
-        <entry key="app/src/main/res/layout/activity_details.xml" value="0.171875" />
+        <entry key="app/src/main/res/layout/activity_details.xml" value="0.25" />
         <entry key="app/src/main/res/layout/activity_log_in.xml" value="0.25" />
         <entry key="app/src/main/res/layout/activity_maps.xml" value="0.1" />
         <entry key="app/src/main/res/layout/activity_register.xml" value="0.1" />

@@ -29,15 +29,7 @@
         android:text="Description"
         android:id="@+id/description"/>
 
-    <TextView
-        android:layout_marginTop="40px"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Number of people"
-        android:textSize="40px"
-        android:height="80px"
 
-        android:id="@+id/numberPeopleText"/>
 
     <TextView
         android:layout_width="match_parent"

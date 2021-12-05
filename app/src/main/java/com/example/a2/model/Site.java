@@ -25,7 +25,8 @@ public class Site implements ClusterItem, Parcelable {
     private double longitude;
     private String description;
     private String username;
-    private List<String> userList;
+    private ArrayList<String> userList;
+    private int numberPeopleTested;
 
 
 
@@ -33,25 +34,31 @@ public class Site implements ClusterItem, Parcelable {
         userList = new ArrayList<>();
     };
 
-    public Site( String username, String name, double latitude, double longitude, List<String> userList, String description) {
+    public Site( String username, String name, double latitude, double longitude, ArrayList<String> userList, String description) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
         this.username = username;
         this.userList = userList;
         this.description = description;
+        this.numberPeopleTested = 0;
     }
 
 
 
     protected Site(Parcel in) {
-//        id = in.readInt();
         name = in.readString();
         latitude = in.readDouble();
         longitude = in.readDouble();
         username = in.readString();
         userList = in.createStringArrayList();
+        System.out.println(userList.size() + "  userlist size in create to parcel");
+
         description = in.readString();
+        // error occurs here ???
+        numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
+        System.out.println(numberPeopleTested + " in create to parcel");
+
     }
 
     @Override
@@ -63,7 +70,15 @@ public class Site implements ClusterItem, Parcelable {
         dest.writeDouble(longitude);
         dest.writeString(username);
         dest.writeStringList(userList);
+        System.out.println(userList.size() + "  userlist size in write to parcel");
+
         dest.writeString(description);
+        dest.writeInt(numberPeopleTested);
+        System.out.println(numberPeopleTested + " in write to parcel");
+
+
+        System.out.println("write site");
+
     }
 
     public static final Creator<Site> CREATOR = new Creator<Site>() {
@@ -111,6 +126,14 @@ public class Site implements ClusterItem, Parcelable {
         this.longitude = longitude;
     }
 
+    public int getNumberPeopleTested() {
+        return numberPeopleTested;
+    }
+
+    public void setNumberPeopleTested(int numberPeopleTested) {
+        this.numberPeopleTested = numberPeopleTested;
+    }
+
     @NonNull
     @Override
     public LatLng getPosition() {
@@ -143,11 +166,11 @@ public class Site implements ClusterItem, Parcelable {
         this.username = username;
     }
 
-    public List<String> getUserList() {
+    public ArrayList<String> getUserList() {
         return userList;
     }
 
-    public void setUserList(List<String> userList) {
+    public void setUserList(ArrayList<String> userList) {
         this.userList = userList;
     }
 

@@ -47,6 +47,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         mWindow = LayoutInflater.from(mContext).inflate(R.layout.custom_info_window, null);
     }
 
+    // render the window
     private void renderWindowText(Marker marker, View view){
 
         String title = marker.getTitle();
@@ -56,49 +57,11 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
 
-        //TODO: Update the number of people in the site
-//        TextView numberOfPeople = view.findViewById(R.id.numberPeopleText);
-//        numberOfPeople.setText("10");
 
         view.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
-
-
-
-//        Button registerBtn = view.findViewById(R.id.registerBtn);
-//
-//        registerBtn.setEnabled(!isCurrentUserAOwner);
-//        registerBtn.setActivated(!isCurrentUserAOwner);
-//        registerBtn.setTextColor(isCurrentUserAOwner ? Color.parseColor("#808080") : Color.parseColor("#FFFFFFFF"));
-//
-//
-//        Button seeDetailsBtn = view.findViewById(R.id.seeDetailsBtn);
-//
-//        seeDetailsBtn.setEnabled(ifUserIsAbleToSeeDetails());
-//        seeDetailsBtn.setActivated(ifUserIsAbleToSeeDetails());
-//        seeDetailsBtn.setTextColor(!ifUserIsAbleToSeeDetails() ? Color.parseColor("#808080") : Color.parseColor("#FFFFFFFF"));
-
-
     }
 
-    public boolean ifUserIsAbleToSeeDetails(){
 
-        //
-        if (currentUser.getIsSuperUser()){
-            return true;
-        }
-
-        for (Site site: siteList
-             ) {
-
-            // check if the username is as same as owner's site
-            if (currentUser.getName().equals(site.getUsername())){
-                return true;
-            }
-
-        }
-
-        return false;
-    }
 
     public View getmWindow() {
         return mWindow;

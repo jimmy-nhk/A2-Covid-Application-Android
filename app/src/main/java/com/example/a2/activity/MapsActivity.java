@@ -1,6 +1,7 @@
 package com.example.a2.activity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
 
 import android.annotation.SuppressLint;
@@ -75,6 +76,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Drawable drawable;
 
+    private CustomInfoWindowAdaptor customInfoWindowAdaptor;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,17 +144,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
-
-
-
         firebaseHelper.getAllSites(new FirebaseHelperCallback() {
-
             @Override
             public void onDataChanged(List<Site> sites) {
-
                 for (Site site : sites
                 ) {
-
                     mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
                 }
                 // take the site
@@ -222,7 +219,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        CustomInfoWindowAdaptor customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
+        customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
         // set custom marker window info
         mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
@@ -257,12 +254,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Site currentSite = findCurrentSite(marker);
 
+                System.out.println(currentSite.getUserList().size() + " hello");
+                System.out.println(currentSite.getNumberPeopleTested()+ " numple of people of maps");
+
+                Log.d(TAG, currentSite.getDescription() + " , " + currentSite.getName() + " name");
                 // check if the current user is the owner of this site
                 if (currentSite.getUsername().equals(currentUser.getName())){
 
                     //TODO: create another activity to see details
                     Intent intent = new Intent(MapsActivity.this, DetailsActivity.class);
                     intent.putExtra("user", currentUser);
+//                    intent.putExtra("userList", currentSite.getUserList());
                     intent.putExtra("site", currentSite);
                     startActivityForResult(intent, DETAILS_CODE);
 
@@ -303,6 +305,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == DETAILS_CODE){
+
+            System.out.println("From details requestcode");
+            if (resultCode == RESULT_OK){
+                System.out.println("From details resultcode");
+
+                // reload the sites
+                loadSitesFromDb(new FirebaseHelperCallback() {
+                    @Override
+                    public void onDataChanged(List<Site> sites) {
+//                        siteList = sites;
+                        for (Site s: sites
+                             ) {
+                            System.out.println(s.getDescription() + " description");
+                        }
+
+                        //update again the info window
+                        customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
+                        // set custom marker window info
+                        mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
+
+
+                        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                            @Override
+                            public void onInfoWindowClick(@NonNull Marker marker) {
+                                Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
+
+                                showDialogDetailsRegister(marker);
+                            }
+                        });
+                    }
+                });
+
+                // reload user
+                loadUsersFromDb(new FirebaseCallback() {
+                    @Override
+                    public void onDataChanged(List<User> users) {
+//                        userList = users;
+                        Log.d(TAG, "Successfully loaded the userList");
+                    }
+                });
+
+
+            }
+        }
     }
 
     public boolean checkIfUserInDb(String username) {
@@ -355,8 +408,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         EditText usernameTxt = registerSiteDialog.findViewById(R.id.userNameRegisterSiteText);
 
         Button btn_yes_register = registerSiteDialog.findViewById(R.id.btn_yes_register);
-
-
 
 
         btn_yes_register.setOnClickListener(new View.OnClickListener() {
@@ -437,7 +488,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
 
-                List<String> usernameList = site.getUserList();
+                ArrayList<String> usernameList = site.getUserList();
 
                 // update the site
                 //validate the username list in site
@@ -477,6 +528,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    // check the user type
     public boolean ifUserIsAbleToSeeDetails(){
 
 
