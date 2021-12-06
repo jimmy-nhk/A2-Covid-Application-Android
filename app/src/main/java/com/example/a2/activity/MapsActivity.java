@@ -42,6 +42,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
+import com.google.common.collect.Maps;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
@@ -320,6 +321,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
                 Log.d(TAG, "Click list volunteer");
                 showListVolunteer();
+                Intent intent = new Intent(MapsActivity.this, TestActivity.class);
+//                String [] tmp = currentSite.getUserList().toArray(new String[0]);
+
+                ArrayList<String> tmp =  new ArrayList<>();
+                tmp.add("Hello");
+                tmp.add("Chao");
+                intent.putExtra("tmp", tmp);
+                startActivity(intent);
             }
         });
     }
@@ -332,8 +341,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         listDialog.show();
 
+        String[] users = { "Suresh Dasari", "Rohini Alavala", "Trishika Dasari", "Praveen Alavala", "Madav Sai", "Hamsika Yemineni"};
         final ListView lv = (ListView) listDialog.findViewById(R.id.list_volunteer);
-        ArrayAdapter aAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, currentSite.getUserList());
+        ArrayAdapter aAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, users);
 
 //        lv.setAdapter(new CustomListAdapter(this, currentSite.getUserList()));
         lv.setAdapter(aAdapter);

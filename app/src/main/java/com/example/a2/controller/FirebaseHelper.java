@@ -202,6 +202,7 @@ public class FirebaseHelper {
                     @Override
                     public void onComplete (@NonNull Task<QuerySnapshot> task) {
 
+
                         for (QueryDocumentSnapshot documentSnapshot: task.getResult()){
 
                             // create new site
@@ -211,12 +212,45 @@ public class FirebaseHelper {
                             site.setDescription(documentSnapshot.getString(Site.DESCRIPTION));
                             site.setUsername(documentSnapshot.getString(Site.USERNAME));
 
+                            site.setNumberPeopleTested(documentSnapshot.getLong(Site.PEOPLETESTED).intValue());
+                            System.out.println("In firebase, added people tested successfully");
+
+
+                            Map<String, Object> map = documentSnapshot.getData();
+                            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                                if (entry.getKey().equals("userList")) {
+                                    ArrayList<String> tmp = (ArrayList<String>) entry.getValue();
+//                                    Log.d("TAG", (String) entry.getValue());
+//                                    System.out.println(tmp.size() + " tmp size");
+
+                                    break;
+                                }
+                            }
+//                            Site tmpSite = documentSnapshot.toObject(Site.class);
 
                             try {
-                                site.setNumberPeopleTested((Integer) documentSnapshot.get(Site.PEOPLETESTED));
-                                site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
-                            }catch (Exception e){
+                                ArrayList<String> tmpSite = (ArrayList<String>) documentSnapshot.get(Site.USERLIST);
+                                System.out.println(tmpSite.size() + " size in tmpSite");
+                                site.setUserList(tmpSite);
+//                                String [] participants = (String[]) documentSnapshot.get(Site.USERLIST);
+//
+//                                ArrayList<String> participantsList = new ArrayList<>();
+//                                for (String s: participants
+//                                ) {
+//                                    System.out.println(s + " in site array list");
+//                                    participantsList.add(s);
+//                                }
+//                                site.setUserList(participantsList);
+//                                System.out.println("In firebase, added array tested successfully");
 
+
+//                                site.setNumberPeopleTested((Integer) documentSnapshot.get(Site.PEOPLETESTED));
+//                                System.out.println("In firebase, added people tested successfully");
+//
+//                                site.setUserList((ArrayList<String>) documentSnapshot.get(Site.USERLIST));
+//                                System.out.println("In firebase, added array tested successfully");
+
+                            }catch (Exception e){
                             }
 
 
