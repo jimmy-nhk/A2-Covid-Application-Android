@@ -177,12 +177,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(@NonNull Marker marker) {
-                for (Site s: siteList
-                     ) {
-                    Log.d(TAG, s.getDescription() + " test sitelist");
-                }
-                Toast.makeText(MapsActivity.this, marker.getSnippet() + "", Toast.LENGTH_SHORT).show();
-                Log.d(TAG, marker.getSnippet() + " test marker");
                 showDialogDetailsRegister(marker);
             }
         });
@@ -208,6 +202,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
 
+                // check if the user is super user
+                if (isSuperUser){
+                    // open the show details dialog
+                    showDetailsDialog(marker);
+
+                    return;
+                }
+
                 Log.d(TAG, currentSite.getDescription() + " , " + currentSite.getName() + " name");
                 // check if the current user is the owner of this site
                 if (currentSite.getUsername().equals(currentUser.getName())){
@@ -217,6 +219,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // open the show details dialog
                     showDetailsDialog(marker);
 
+                    return;
                 }else{
 
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
@@ -321,32 +324,44 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
                 Log.d(TAG, "Click list volunteer");
                 showListVolunteer();
-                Intent intent = new Intent(MapsActivity.this, TestActivity.class);
-//                String [] tmp = currentSite.getUserList().toArray(new String[0]);
-
-                ArrayList<String> tmp =  new ArrayList<>();
-                tmp.add("Hello");
-                tmp.add("Chao");
-                intent.putExtra("tmp", tmp);
-                startActivity(intent);
+//                Intent intent = new Intent(MapsActivity.this, TestActivity.class);
+////                String [] tmp = currentSite.getUserList().toArray(new String[0]);
+//
+//                ArrayList<String> tmp =  new ArrayList<>();
+//                tmp.add("Hello");
+//                tmp.add("Chao");
+//                intent.putExtra("tmp", tmp);
+//                startActivity(intent);
             }
         });
     }
 
     private void showListVolunteer() {
 
+        // create dialog component
         Dialog listDialog = new Dialog(MapsActivity.this);
         listDialog.setContentView(R.layout.volunteer_lists);
 
+        Button backBtn = listDialog.findViewById(R.id.backToDetailsBtn);
+        backBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                listDialog.dismiss();
+            }
+        });
+
+        TextView siteName = listDialog.findViewById(R.id.titleDisplay);
+        siteName.setText(currentSite.getTitle());
+
+
+        // create list view components
+        ListView lv = (ListView) listDialog.findViewById(R.id.list_volunteer);
+
+        // create custom adapter
+        CustomListAdapter customListAdapter = new CustomListAdapter(MapsActivity.this, currentSite.getUserList());
+        lv.setAdapter(customListAdapter);
 
         listDialog.show();
-
-        String[] users = { "Suresh Dasari", "Rohini Alavala", "Trishika Dasari", "Praveen Alavala", "Madav Sai", "Hamsika Yemineni"};
-        final ListView lv = (ListView) listDialog.findViewById(R.id.list_volunteer);
-        ArrayAdapter aAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, users);
-
-//        lv.setAdapter(new CustomListAdapter(this, currentSite.getUserList()));
-        lv.setAdapter(aAdapter);
 
     }
 
