@@ -9,12 +9,12 @@
     tools:context=".activity.MapsActivity" >
 
     <Button
+        android:id="@+id/signInOutBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Back"
         android:backgroundTint="@color/blue_phantom"
         android:textColor="@color/white"
         android:textStyle="bold"
-        android:onClick="signOut"
         />
 </fragment>

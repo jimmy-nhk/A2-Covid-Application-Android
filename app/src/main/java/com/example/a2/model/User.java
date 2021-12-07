@@ -24,6 +24,7 @@ public class User implements Parcelable {
         isSuperUser = superUser;
     }
 
+    public User(){};
     public User(String name, String email, boolean isSuperUser) {
         this.name = name;
         this.email = email;

@@ -270,7 +270,4 @@ public class FirebaseHelper {
                 });
     }
 
-
-
-
 }

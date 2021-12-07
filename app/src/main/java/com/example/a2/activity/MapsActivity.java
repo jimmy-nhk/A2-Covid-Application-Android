@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentActivity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -24,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
+import com.example.a2.data.Result;
 import com.example.a2.helper.CustomListAdapter;
 import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
@@ -43,6 +45,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
 import com.google.common.collect.Maps;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
@@ -57,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GoogleMap.OnInfoWindowCloseListener
         ,ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
 
+    private static final int LOGIN_CODE = 100;
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
 
@@ -67,10 +71,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected FusedLocationProviderClient client;
     protected LocationRequest mLocationRequest;
 
+    private FirebaseAuth firebaseAuth;
     private FirebaseHelper firebaseHelper;
     private FirebaseFirestore db;
     private ArrayList<Site> siteList;
     private List<User> userList;
+    private boolean isLoggedIn;
 
     private ClusterManager<Site> clusterManager;
     private SiteRenderer siteRender;
@@ -93,7 +99,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             siteLatitude, siteLongitude,siteDescription, numberPeopleSite;
 
     private EditText  numberPeopleTested;
-
+    private Button signInOutBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,13 +110,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         db = FirebaseFirestore.getInstance();
 
-
-        // get the intent from login
-        Intent intent = getIntent();
-        currentUser = (User) intent.getParcelableExtra("user");
-        Log.d(TAG, currentUser.toString());
-        isSuperUser = currentUser.getIsSuperUser();
-
+        // init isLogin user
+        isLoggedIn = false;
+        currentUser = new User();
+        firebaseAuth = FirebaseAuth.getInstance();
 
         drawable = getResources().getDrawable(R.drawable.site_cluster_large);
 
@@ -119,10 +122,76 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         siteList = new ArrayList<>();
         userList = new ArrayList<>();
 
+
+        signInOutBtn = findViewById(R.id.signInOutBtn);
+
+        // validate the log in btn
+        if (!isLoggedIn){
+            signInOutBtn.setText("Sign In");
+        } else {
+            signInOutBtn.setText("Sign Out");
+        }
+        signInOutBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // validate login
+                if (isLoggedIn){
+
+                    firebaseAuth.signOut();
+                    isLoggedIn = false;
+
+                    signInOutBtn.setText("Sign In");
+
+                    return;
+                }
+
+                Intent intent = new Intent(MapsActivity.this , LogInActivity.class);
+                startActivityForResult(intent, LOGIN_CODE);
+            }
+        });
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+
+        if (requestCode == LOGIN_CODE){
+
+            if (resultCode == RESULT_OK){
+
+                // load again the site
+                loadSitesFromDb(new FirebaseHelperCallback() {
+
+
+                    @Override
+                    public void onDataChanged(List<Site> sites) {
+                        Log.d(TAG, "Loaded after added successfully");
+                        siteList = (ArrayList<Site>) sites;
+                    }
+                });
+
+
+                isLoggedIn = true;
+                // validate the log in btn
+                if (!isLoggedIn){
+                    signInOutBtn.setText("Sign In");
+                } else {
+                    signInOutBtn.setText("Sign Out");
+                }
+
+                // get the intent from login
+                currentUser = (User) data.getParcelableExtra("user");
+                Log.d(TAG, currentUser.toString());
+                isSuperUser = currentUser.getIsSuperUser();
+            }
+        }
 
     }
 
@@ -158,6 +227,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
+
+                if (!isLoggedIn) {
+                    final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
+                            .setTitle("Not Login Yet")
+                            .setMessage("You are required to log in to perform the task")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    dialog1.show();
+                }
                 // validate if the current user is a leader
                 if (isLeader){
                     return;
@@ -586,6 +665,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // check the user type
     public boolean ifUserIsAbleToSeeDetails(){
 
+        if (!isLoggedIn) {
+            return false;
+        }
 
         for (Site site: siteList
         ) {
@@ -713,12 +795,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         createSiteDialog.dismiss();
     }
 
-    // sign out
-    public void signOut(View view) {
-        Intent intent = new Intent(MapsActivity.this, LogInActivity.class);
-        setResult(RESULT_OK, intent);
-        finish();
-    }
 
     public void closeRegisterSiteDialog(View view) {
         registerSiteDialog.dismiss();

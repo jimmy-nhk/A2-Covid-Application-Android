@@ -168,9 +168,14 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                                     user = searchUser(userFirebase.getEmail());
                                     Log.d(TAG, user.getEmail().toString());
 
+//                                    Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
+//                                    intent.putExtra("user" , user);
+//                                    startActivity(intent);
+
                                     Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
                                     intent.putExtra("user" , user);
-                                    startActivity(intent);
+                                    setResult(RESULT_OK , intent);
+                                    finish();
 
                                 } catch (Exception e){
                                     Log.d(TAG, "Cannot validate the user in firestone");
@@ -298,15 +303,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        // check if from maps
-        if (requestCode == MAPS_CODE){
 
-            if (resultCode == RESULT_OK){
-
-                firebaseAuth.signOut();
-                Log.d(TAG, "Signout successfully");
-            }
-        }
 
         // check if from register
         if (requestCode == REGISTER_CODE){
