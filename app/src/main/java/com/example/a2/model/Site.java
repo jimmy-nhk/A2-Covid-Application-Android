@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Site implements ClusterItem, Parcelable {
+public class Site implements ClusterItem, Parcelable, Comparable<Site> {
 
     public final static String NAME = "name";
     public final static String LATITUDE = "latitude";
@@ -210,5 +210,19 @@ public class Site implements ClusterItem, Parcelable {
     }
 
 
+    @Override
+    public int compareTo(Site o) {
 
+        if (this.name.equals(o.name)
+            && this.description.equals(o.description)
+            && this.latitude == o.latitude
+            && this.longitude == o.longitude
+            && this.userList.equals(o.userList)
+            && this.numberPeopleTested == o.numberPeopleTested
+            && this.username.equals(o.username)) {
+            return 0;
+        }
+
+        return 1;
+    }
 }
