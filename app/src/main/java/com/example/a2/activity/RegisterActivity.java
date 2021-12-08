@@ -42,7 +42,6 @@ public class RegisterActivity extends AppCompatActivity {
     private List<User> userList;
 
     private TextView errorTxt;
-    private CheckBox isSuperUser;
 
     public static final String USER_COLLECTION = "users";
 
@@ -105,7 +104,7 @@ public class RegisterActivity extends AppCompatActivity {
 
 
                             // create user
-                            User user1 = new User(usernameText.getText().toString(), emailText.getText().toString(), isSuperUser.isChecked());
+                            User user1 = new User(usernameText.getText().toString(), emailText.getText().toString(), false);
 
                             firebaseHelper.addUser(user1);
                             Log.d(TAG, "Successfully added new user in Register Activity");
@@ -221,7 +220,6 @@ public class RegisterActivity extends AppCompatActivity {
         passwordText = findViewById(R.id.editPassword);
         confirmPasswordText = findViewById(R.id.editConfirmPassword);
         signUpBtn = findViewById(R.id.signUpBtn);
-        isSuperUser = findViewById(R.id.isSuperUser);
     }
 
 

@@ -1,20 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/map"
-    android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".activity.MapsActivity" >
+    android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/signInOutBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Back"
-        android:backgroundTint="@color/blue_phantom"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        />
-</fragment>
+    <fragment
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".activity.MapsActivity">
+
+
+
+            <ImageButton
+                android:id="@+id/signInOutBtn"
+                android:layout_width="150px"
+                android:layout_height="150px"
+                android:layout_marginTop="20px"
+                android:layout_marginLeft="900px"
+                android:src="@drawable/login_ic"
+                android:backgroundTint="@color/blue_phantom"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/setCurrentPositionBtn"
+                android:layout_width="wrap_content"
+                android:layout_marginLeft="935px"
+                android:layout_marginTop="1380px"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_my_location_24"
+                android:backgroundTint="@color/blue_phantom"
+                android:text="Current Position"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+
+        <RelativeLayout
+            android:id="@+id/relLayout1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="80dp"
+            android:background="@drawable/white_border"
+            android:elevation="10dp">
+
+
+            <ImageView
+                android:id="@+id/ic_magnify"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:src="@drawable/ic_magnify" />
+
+            <EditText
+                android:id="@+id/input_search"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@+id/ic_magnify"
+                android:background="@null"
+                android:hint="Enter Address, City or Zip Code"
+                android:imeOptions="actionSearch"
+                android:textColor="#000"
+                android:textSize="15sp" />
+
+
+        </RelativeLayout>
+
+
+    </fragment>
+
+
+
+
+
+</RelativeLayout>

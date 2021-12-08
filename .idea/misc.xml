@@ -6,12 +6,15 @@
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/bg_window.xml" value="0.19322916666666667" />
         <entry key="app/src/main/res/drawable/btn_bg.xml" value="0.19322916666666667" />
+        <entry key="app/src/main/res/drawable/ic_baseline_login_24.xml" value="0.18518518518518517" />
+        <entry key="app/src/main/res/drawable/ic_baseline_my_location_24.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/ic_baseline_thumb_up_alt_24.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/ic_clear.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/ic_launcher_background.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/site_cluster.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/site_cluster_large.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/thumb_up.xml" value="0.24114583333333334" />
+        <entry key="app/src/main/res/drawable/white_border.xml" value="0.11481481481481481" />
         <entry key="app/src/main/res/font/open_sans.xml" value="0.21145833333333333" />
         <entry key="app/src/main/res/layout/activity_details.xml" value="0.25" />
         <entry key="app/src/main/res/layout/activity_log_in.xml" value="0.25" />

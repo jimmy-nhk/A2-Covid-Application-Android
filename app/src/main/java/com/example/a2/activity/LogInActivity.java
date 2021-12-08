@@ -97,6 +97,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         errorLoginTxt = findViewById(R.id.errorLoginTxt);
         errorLoginTxt.setVisibility(View.INVISIBLE);
         signInGoogleButton = findViewById(R.id.signInWithGoogle);
+
+        TextView textView = (TextView) signInGoogleButton.getChildAt(0);
+        textView.setText("Sign in Google to be a super user");
     }
 
     public void initService(){
@@ -239,8 +242,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
             // get the account
             GoogleSignInAccount account = result.getSignInAccount();
             idToken = account.getIdToken();
-
-
 
 
             // you can store user data to SharedPreference

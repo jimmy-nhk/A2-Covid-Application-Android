@@ -2,20 +2,29 @@ package com.example.a2.activity;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,6 +43,7 @@ import com.example.a2.model.Site;
 import com.example.a2.model.User;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -44,6 +54,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.common.collect.Maps;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -52,13 +64,14 @@ import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.ClusterRenderer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
-         GoogleMap.OnInfoWindowLongClickListener,
+        GoogleMap.OnInfoWindowLongClickListener,
         GoogleMap.OnInfoWindowCloseListener
-        ,ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
+        , ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
 
     private static final int LOGIN_CODE = 100;
     private GoogleMap mMap;
@@ -68,7 +81,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final long FASTEST_INTERVAL = 2 * 1000; //2s
     public static final String TAG = "MapsActivity";
 
-    protected FusedLocationProviderClient client;
+    protected FusedLocationProviderClient mFusedLocationProviderClient;
     protected LocationRequest mLocationRequest;
 
     private FirebaseAuth firebaseAuth;
@@ -96,10 +109,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button backBtn, listBtn, editBtn;
 
     private TextView siteTitle, ownerSite,
-            siteLatitude, siteLongitude,siteDescription, numberPeopleSite;
+            siteLatitude, siteLongitude, siteDescription, numberPeopleSite;
 
-    private EditText  numberPeopleTested;
-    private Button signInOutBtn;
+    private EditText numberPeopleTested;
+    private ImageButton signInOutBtn;
+    private EditText mSearchText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,7 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         isLoggedIn = false;
         currentUser = new User();
         firebaseAuth = FirebaseAuth.getInstance();
-
+        mSearchText = findViewById(R.id.input_search);
         drawable = getResources().getDrawable(R.drawable.site_cluster_large);
 
         // Init the object
@@ -125,36 +139,132 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         signInOutBtn = findViewById(R.id.signInOutBtn);
 
-        // validate the log in btn
-        if (!isLoggedIn){
-            signInOutBtn.setText("Sign In");
-        } else {
-            signInOutBtn.setText("Sign Out");
-        }
+
         signInOutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
+
                 // validate login
-                if (isLoggedIn){
+                if (isLoggedIn) {
 
                     firebaseAuth.signOut();
                     isLoggedIn = false;
 
-                    signInOutBtn.setText("Sign In");
 
                     return;
                 }
 
-                Intent intent = new Intent(MapsActivity.this , LogInActivity.class);
+                Intent intent = new Intent(MapsActivity.this, LogInActivity.class);
                 startActivityForResult(intent, LOGIN_CODE);
             }
         });
+        getLocationPermission();
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+    }
+
+    private void init(){
+        Log.d(TAG, "init: initializing");
+
+        mSearchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+
+                if (actionId == EditorInfo.IME_ACTION_SEARCH
+                    || actionId == EditorInfo.IME_ACTION_DONE
+                    || event.getAction() == KeyEvent.ACTION_DOWN
+                    || event.getAction() == KeyEvent.KEYCODE_ENTER){
+
+                    // execute our method for searching
+                    geoLocate();
+                }
+
+                return false;
+            }
+        });
+    }
+
+    private void geoLocate(){
+        Log.d(TAG, "geoLocate: geolocating");
+
+        String searchString = mSearchText.getText().toString();
+
+        Geocoder geocoder = new Geocoder(MapsActivity.this);
+        List<Address> list = new ArrayList<>();
+
+        try {
+
+            list = geocoder.getFromLocationName(searchString, 1);
+        } catch (IOException e)
+        {
+            Log.e(TAG,"geoLocated: IOException: "+ e.getMessage());
+        }
+
+        if (list.size() > 0){
+            Address address = list.get(0);
+
+            Log.d(TAG, "geoLocate: found a location: " + address.toString());
+            Toast.makeText(MapsActivity.this, address.toString(), Toast.LENGTH_SHORT).show();
+            moveCamera(new LatLng(address.getLatitude(), address.getLongitude()), 15, address.getAddressLine(0));
+        }
+
+
+    }
+
+    private void getDeviceLocation() {
+        Log.d(TAG, "GetDeviceLocation: getting devices current location");
+
+        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            Task location = mFusedLocationProviderClient.getLastLocation();
+            location.addOnCompleteListener(new OnCompleteListener() {
+                @Override
+                public void onComplete(@NonNull Task task) {
+                    if(task.isSuccessful()){
+                        Log.d(TAG, "onComplete: found location!");
+                        Location currentLocation = (Location)  task.getResult();
+
+
+                        moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 15, "My Location");
+
+                    }else {
+                        Log.d(TAG, "onComplete: current location is null!");
+                        Toast.makeText(MapsActivity.this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+
+                    }
+                }
+            });
+
+        }catch (Exception e){
+            Log.e(TAG, "getdevicelocation: Security: " + e.getMessage());
+        }
+    }
+
+    private void moveCamera(LatLng latLng , float zoom, String title){
+        Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
+                latLng.longitude);
+        MarkerOptions options = new MarkerOptions()
+                .position(latLng)
+                .title(title);
+        mMap.addMarker(options);
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
     }
 
     @Override
@@ -179,12 +289,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 isLoggedIn = true;
-                // validate the log in btn
-                if (!isLoggedIn){
-                    signInOutBtn.setText("Sign In");
-                } else {
-                    signInOutBtn.setText("Sign Out");
-                }
+
 
                 // get the intent from login
                 currentUser = (User) data.getParcelableExtra("user");
@@ -197,6 +302,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
         mMap = googleMap;
 
         loadSitesFromDb(new FirebaseHelperCallback() {
@@ -221,6 +327,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng rmit = new LatLng(10.72978835877818, 106.69307559874231);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(rmit));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(rmit, 15));
+
+        //TODO: get current location does not work
+//        getDeviceLocation();
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         // set on map click
@@ -236,7 +345,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .create();
 
                     dialog1.show();
+                    return;
                 }
+
+                // validate the isSuperUser
+                if (isSuperUser){
+                    return;
+                }
+
                 // validate if the current user is a leader
                 if (isLeader){
                     return;
@@ -247,20 +363,69 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // search field
+        init();
+
         customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
         // set custom marker window info
         mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
 
 
-        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-            @Override
-            public void onInfoWindowClick(@NonNull Marker marker) {
-                showDialogDetailsRegister(marker);
+        mMap.setOnInfoWindowClickListener(marker -> showDialogDetailsRegister(marker));
+
+    }
+
+    private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
+    private boolean mLocationPermissionsGranted = false;
+
+    private void getLocationPermission(){
+        String [] permissions = {FINE_LOCATION,
+                                    COARSE_LOCATION};
+
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                FINE_LOCATION)== PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                    COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                mLocationPermissionsGranted = true;
+            } else {
+                ActivityCompat.requestPermissions(this, permissions
+                        , LOCATION_PERMISSION_REQUEST_CODE);
+
             }
-        });
+        }else {
+            ActivityCompat.requestPermissions(this, permissions
+                    , LOCATION_PERMISSION_REQUEST_CODE);
 
+        }
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        mLocationPermissionsGranted = false;
+
+        switch (requestCode){
+            case LOCATION_PERMISSION_REQUEST_CODE:{
+                if (grantResults.length > 0){
+
+                    for (int i = 0 ; i < grantResults.length ; i++){
+                        if( grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                            mLocationPermissionsGranted = false;
+                            return;
+                        }
+                    }
+
+                    mLocationPermissionsGranted = true;
+                    // initialize our map
+                }
+            }
+        }
     }
 
     //show dialog of register and show details
@@ -280,6 +445,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         detailsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                if (!isLoggedIn){
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("You cannot see the details of any site!")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    dialog1.show();
+                    return;
+                }
 
                 // check if the user is super user
                 if (isSuperUser){
@@ -320,6 +496,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         closeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 registerDetailsDialog.dismiss();
             }
         });
@@ -330,6 +507,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         registerBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                if (!isLoggedIn){
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("You cannot register any site unless you login!")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    dialog1.show();
+                    return;
+                }
+
+                // validate the super user cannot register a site
+                if (isSuperUser){
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            .setTitle("Error")
+                            .setMessage("You cannot register any site because you are a super user.")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+
+                    registerDetailsDialog.dismiss();
+                    dialog1.show();
+                    return;
+                }
+
                 showDialogForRegisterSite(marker);
                 registerDetailsDialog.dismiss();
             }
