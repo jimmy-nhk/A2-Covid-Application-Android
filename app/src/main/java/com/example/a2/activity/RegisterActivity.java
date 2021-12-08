@@ -26,6 +26,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -38,7 +40,10 @@ public class RegisterActivity extends AppCompatActivity {
     private Button signUpBtn;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
-    private FirebaseHelper firebaseHelper;
+//    private FirebaseHelper firebaseHelper;
+    private FirebaseDatabase firebaseDatabase;
+    private DatabaseReference databaseReference;
+
     private List<User> userList;
 
     private TextView errorTxt;
@@ -106,14 +111,16 @@ public class RegisterActivity extends AppCompatActivity {
                             // create user
                             User user1 = new User(usernameText.getText().toString(), emailText.getText().toString(), false);
 
-                            firebaseHelper.addUser(user1);
+                            databaseReference.child("users").child(user1.getName()).setValue(user1.toMap());
+
+//                            firebaseHelper.addUser(user1);
                             Log.d(TAG, "Successfully added new user in Register Activity");
 
                             updateUI(user1);
                         } else {
 
-                            errorTxt.setVisibility(View.INVISIBLE);
-                            errorTxt.setText("The account cannot be added. Please try again");
+                            errorTxt.setVisibility(View.VISIBLE);
+                            errorTxt.setText("The account cannot be added. Please check the format of the gmail.");
 
                             Log.w(TAG,"createUserWithEmail:failure", task.getException());
                             Toast.makeText(RegisterActivity.this, "Create account fail", Toast.LENGTH_SHORT).show();
@@ -178,37 +185,39 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
 
-    public interface FirebaseHelperCallback {
-        void onDataChanged(List<User> users);
-    }
-
-    public void loadUsersFromDb(RegisterActivity.FirebaseHelperCallback myCallback) {
-
-
-        firebaseHelper.getAllUsersForRegister(new RegisterActivity.FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<User> users) {
-
-                userList = users;
-            }
-        });
-    }
+//    public interface FirebaseHelperCallback {
+//        void onDataChanged(List<User> users);
+//    }
+//
+//    public void loadUsersFromDb(RegisterActivity.FirebaseHelperCallback myCallback) {
+//
+//
+//        firebaseHelper.getAllUsersForRegister(new RegisterActivity.FirebaseHelperCallback() {
+//            @Override
+//            public void onDataChanged(List<User> users) {
+//
+//                userList = users;
+//            }
+//        });
+//    }
 
 
     public void initService(){
         // Init firestone
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
-        firebaseHelper = new FirebaseHelper(RegisterActivity.this);
-
+//        firebaseHelper = new FirebaseHelper(RegisterActivity.this);
+        // init realtime db
+        firebaseDatabase = FirebaseDatabase.getInstance("https://a2-android-56cbb-default-rtdb.asia-southeast1.firebasedatabase.app/");
+        databaseReference = firebaseDatabase.getReference();
         userList = new ArrayList<>();
 
-        loadUsersFromDb(new FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<User> users) {
-                Log.d(RegisterActivity.class.getName(), "Load user register successfully");
-            }
-        });
+//        loadUsersFromDb(new FirebaseHelperCallback() {
+//            @Override
+//            public void onDataChanged(List<User> users) {
+//                Log.d(RegisterActivity.class.getName(), "Load user register successfully");
+//            }
+//        });
     }
 
     public void attachComponents(){

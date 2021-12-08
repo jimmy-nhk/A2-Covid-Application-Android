@@ -58,6 +58,12 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.collect.Maps;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
@@ -66,6 +72,7 @@ import com.google.maps.android.clustering.view.ClusterRenderer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
@@ -76,17 +83,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int LOGIN_CODE = 100;
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
-
-    private static final long UPDATE_INTERVAL = 10 * 1000; //10s
-    private static final long FASTEST_INTERVAL = 2 * 1000; //2s
     public static final String TAG = "MapsActivity";
 
     protected FusedLocationProviderClient mFusedLocationProviderClient;
     protected LocationRequest mLocationRequest;
 
     private FirebaseAuth firebaseAuth;
-    private FirebaseHelper firebaseHelper;
-    private FirebaseFirestore db;
+//    private FirebaseHelper firebaseHelper;
+    private FirebaseDatabase firebaseDatabase;
+    private DatabaseReference databaseReference;
+
     private ArrayList<Site> siteList;
     private List<User> userList;
     private boolean isLoggedIn;
@@ -105,7 +111,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private CustomInfoWindowAdaptor customInfoWindowAdaptor;
 
-    /** Component for details dialog*/
+    /**
+     * Component for details dialog
+     */
     private Button backBtn, listBtn, editBtn;
 
     private TextView siteTitle, ownerSite,
@@ -122,24 +130,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        db = FirebaseFirestore.getInstance();
+        initServices();
 
-        // init isLogin user
+        //get location permission for the map
+        getLocationPermission();
+
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+    }
+
+    private void initServices(){
+
+        // init realtime db
+        firebaseDatabase = FirebaseDatabase.getInstance("https://a2-android-56cbb-default-rtdb.asia-southeast1.firebasedatabase.app/");
+        databaseReference = firebaseDatabase.getReference();
+
+
+        User user1 = new User("hello1" , "123@gmail.com", true);
+        databaseReference.child("users").child(user1.getName()).setValue(user1);
+
+        User user2 = new User("hello2" , "123@gmail.com", true);
+        databaseReference.child("users").child(user2.getName()).setValue(user2);
+
+        // init isLogin
+        //TODO: isloggedin is true for testing now! by default, it is false
         isLoggedIn = false;
+//        isLoggedIn = true;
         currentUser = new User();
         firebaseAuth = FirebaseAuth.getInstance();
         mSearchText = findViewById(R.id.input_search);
         drawable = getResources().getDrawable(R.drawable.site_cluster_large);
 
         // Init the object
-        firebaseHelper = new FirebaseHelper(MapsActivity.this);
+//        firebaseHelper = new FirebaseHelper(MapsActivity.this);
         siteList = new ArrayList<>();
         userList = new ArrayList<>();
 
 
+        readDataFromDb();
+
         signInOutBtn = findViewById(R.id.signInOutBtn);
-
-
         signInOutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -159,16 +192,144 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 startActivityForResult(intent, LOGIN_CODE);
             }
         });
-        getLocationPermission();
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
     }
 
-    private void init(){
+
+    // read data from db
+    private void readDataFromDb(){
+
+        // load users
+        databaseReference.child("users").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+
+                long size = snapshot.getChildrenCount();
+                Log.d(TAG, "Size is: " + size);
+
+                GenericTypeIndicator<HashMap<String, User>> genericTypeIndicator =new GenericTypeIndicator<HashMap<String, User>>(){};
+
+                HashMap<String,User> users= snapshot.getValue(genericTypeIndicator);
+
+
+                try {
+                    for (User u : users.values() ){
+                        Log.d(TAG, "Value is: " + u.getEmail());
+                        userList.add(u);
+                    }
+                } catch (Exception e){
+                    Log.d(TAG, "Cannot load the users");
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+        // load sites
+        databaseReference.child("sites").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                GenericTypeIndicator<HashMap<String, Site>> genericTypeIndicator =new GenericTypeIndicator<HashMap<String, Site>>(){};
+
+                HashMap<String,Site> sites= snapshot.getValue(genericTypeIndicator);
+
+
+                try {
+                    mMap.clear();
+
+                    // init the siteList again
+                    siteList = new ArrayList<>();
+
+
+                    for (Site s : sites.values()){
+                        mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(s.getDescription()).title(s.getName()).position(new LatLng(s.getLatitude(), s.getLongitude())));
+                        siteList.add(s);
+
+                    }
+                }catch (Exception e){
+                    Log.d(TAG, "Cannot load the sites");
+                }
+
+                Site site = new Site();
+                // validate the leader site
+                for (Site s: siteList
+                     ) {
+
+                    try {
+                        if (s.getUsername().equals(currentUser.getName())){
+                            site = s;
+                            Log.d(TAG, "sitesDb: size of userList: " + site.getUserList().size());
+
+                            //TODO: notification here
+                            Log.d(TAG, "sitesDb: notification on change here");
+                            break;
+                        }
+                    } catch (Exception e){
+                    }
+
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+//        if (isLeader){
+
+//            Site site = new Site();
+//            for (Site s: siteList
+//                 ) {
+//                if (s.getUsername().equals(currentUser.getName())){
+//                    site = s;
+//                    break;
+//                }
+//            }
+
+//        try {
+//            databaseReference.child("sites").orderByChild(Site.USERNAME)
+//                    .equalTo(currentUser.getName()).addValueEventListener(new ValueEventListener() {
+//                @Override
+//                public void onDataChange(@NonNull DataSnapshot snapshot) {
+//
+//
+//                    GenericTypeIndicator<Site> genericTypeIndicator =new GenericTypeIndicator<Site>(){};
+//
+//                    Site sites= snapshot.getValue(genericTypeIndicator);
+//
+//                    try {
+//                        Log.d(TAG, sites.getUserList().toString() + " toString changed sitesDb");
+//                        Log.d(TAG, "sitesDb: Change in your site");
+//                    } catch (Exception e){
+//
+//                        Log.d(TAG,"sitesDb: Cannot find userList");
+//                    }
+//
+//                }
+//
+//                @Override
+//                public void onCancelled(@NonNull DatabaseError error) {
+//
+//                }
+//            });
+//        } catch (Exception e){
+//            Log.d(TAG, "sitesDb: Cannot find the site with the current user");
+//        }
+
+//        }
+    }
+
+    private void init() {
         Log.d(TAG, "init: initializing");
 
         mSearchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -176,9 +337,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 
                 if (actionId == EditorInfo.IME_ACTION_SEARCH
-                    || actionId == EditorInfo.IME_ACTION_DONE
-                    || event.getAction() == KeyEvent.ACTION_DOWN
-                    || event.getAction() == KeyEvent.KEYCODE_ENTER){
+                        || actionId == EditorInfo.IME_ACTION_DONE
+                        || event.getAction() == KeyEvent.ACTION_DOWN
+                        || event.getAction() == KeyEvent.KEYCODE_ENTER) {
 
                     // execute our method for searching
                     geoLocate();
@@ -189,7 +350,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void geoLocate(){
+    private void geoLocate() {
         Log.d(TAG, "geoLocate: geolocating");
 
         String searchString = mSearchText.getText().toString();
@@ -197,15 +358,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Geocoder geocoder = new Geocoder(MapsActivity.this);
         List<Address> list = new ArrayList<>();
 
+        //TODO: this is where to search marker based on string name
         try {
 
             list = geocoder.getFromLocationName(searchString, 1);
-        } catch (IOException e)
-        {
-            Log.e(TAG,"geoLocated: IOException: "+ e.getMessage());
+        } catch (IOException e) {
+            Log.e(TAG, "geoLocated: IOException: " + e.getMessage());
         }
 
-        if (list.size() > 0){
+        if (list.size() > 0) {
             Address address = list.get(0);
 
             Log.d(TAG, "geoLocate: found a location: " + address.toString());
@@ -216,7 +377,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void getDeviceLocation() {
+    // get the current location
+    public void getDeviceLocation(View view) {
         Log.d(TAG, "GetDeviceLocation: getting devices current location");
 
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -236,14 +398,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             location.addOnCompleteListener(new OnCompleteListener() {
                 @Override
                 public void onComplete(@NonNull Task task) {
-                    if(task.isSuccessful()){
+                    if (task.isSuccessful()) {
                         Log.d(TAG, "onComplete: found location!");
-                        Location currentLocation = (Location)  task.getResult();
+                        Location currentLocation = (Location) task.getResult();
 
 
                         moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 15, "My Location");
 
-                    }else {
+                    } else {
                         Log.d(TAG, "onComplete: current location is null!");
                         Toast.makeText(MapsActivity.this, "Unable to get current location", Toast.LENGTH_SHORT).show();
 
@@ -251,12 +413,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
 
-        }catch (Exception e){
+        } catch (Exception e) {
             Log.e(TAG, "getdevicelocation: Security: " + e.getMessage());
         }
     }
 
-    private void moveCamera(LatLng latLng , float zoom, String title){
+    private void moveCamera(LatLng latLng, float zoom, String title) {
         Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
                 latLng.longitude);
         MarkerOptions options = new MarkerOptions()
@@ -272,20 +434,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onActivityResult(requestCode, resultCode, data);
 
 
-        if (requestCode == LOGIN_CODE){
+        if (requestCode == LOGIN_CODE) {
 
-            if (resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
 
+                readDataFromDb();
                 // load again the site
-                loadSitesFromDb(new FirebaseHelperCallback() {
-
-
-                    @Override
-                    public void onDataChanged(List<Site> sites) {
-                        Log.d(TAG, "Loaded after added successfully");
-                        siteList = (ArrayList<Site>) sites;
-                    }
-                });
+//                loadSitesFromDb(new FirebaseHelperCallback() {
+//
+//
+//                    @Override
+//                    public void onDataChanged(List<Site> sites) {
+//                        Log.d(TAG, "Loaded after added successfully");
+//                        siteList = (ArrayList<Site>) sites;
+//                    }
+//                });
 
 
                 isLoggedIn = true;
@@ -305,19 +468,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap = googleMap;
 
-        loadSitesFromDb(new FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<Site> siteList) {
-                Log.d(TAG, siteList.toString());
-            }
-        });
-
-        loadUsersFromDb(new FirebaseCallback() {
-            @Override
-            public void onDataChanged(List<User> users) {
-                Log.d(TAG, "Successfully loaded the userList");
-            }
-        });
+//        loadSitesFromDb(new FirebaseHelperCallback() {
+//            @Override
+//            public void onDataChanged(List<Site> siteList) {
+//                Log.d(TAG, siteList.toString());
+//            }
+//        });
+//
+//        loadUsersFromDb(new FirebaseCallback() {
+//            @Override
+//            public void onDataChanged(List<User> users) {
+//                Log.d(TAG, "Successfully loaded the userList");
+//            }
+//        });
 
         // set up cluster
 //        setUpClusters();
@@ -349,12 +512,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // validate the isSuperUser
-                if (isSuperUser){
+                if (isSuperUser) {
                     return;
                 }
 
                 // validate if the current user is a leader
-                if (isLeader){
+                if (isLeader) {
                     return;
                 }
 
@@ -366,7 +529,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // search field
         init();
 
-        customInfoWindowAdaptor =  new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
+        customInfoWindowAdaptor = new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
         // set custom marker window info
         mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
@@ -382,12 +545,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
     private boolean mLocationPermissionsGranted = false;
 
-    private void getLocationPermission(){
-        String [] permissions = {FINE_LOCATION,
-                                    COARSE_LOCATION};
+    private void getLocationPermission() {
+        String[] permissions = {FINE_LOCATION,
+                COARSE_LOCATION};
 
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                FINE_LOCATION)== PackageManager.PERMISSION_GRANTED) {
+                FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
                     COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 mLocationPermissionsGranted = true;
@@ -396,7 +559,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         , LOCATION_PERMISSION_REQUEST_CODE);
 
             }
-        }else {
+        } else {
             ActivityCompat.requestPermissions(this, permissions
                     , LOCATION_PERMISSION_REQUEST_CODE);
 
@@ -410,12 +573,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mLocationPermissionsGranted = false;
 
-        switch (requestCode){
-            case LOCATION_PERMISSION_REQUEST_CODE:{
-                if (grantResults.length > 0){
+        switch (requestCode) {
+            case LOCATION_PERMISSION_REQUEST_CODE: {
+                if (grantResults.length > 0) {
 
-                    for (int i = 0 ; i < grantResults.length ; i++){
-                        if( grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                    for (int i = 0; i < grantResults.length; i++) {
+                        if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
                             mLocationPermissionsGranted = false;
                             return;
                         }
@@ -429,7 +592,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     //show dialog of register and show details
-    public void showDialogDetailsRegister(Marker marker){
+    public void showDialogDetailsRegister(Marker marker) {
 
         // init current site
         currentSite = findCurrentSite(marker);
@@ -446,7 +609,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
 
-                if (!isLoggedIn){
+                if (!isLoggedIn) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
                             .setMessage("You cannot see the details of any site!")
@@ -458,7 +621,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // check if the user is super user
-                if (isSuperUser){
+                if (isSuperUser) {
                     // open the show details dialog
                     showDetailsDialog(marker);
 
@@ -467,7 +630,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Log.d(TAG, currentSite.getDescription() + " , " + currentSite.getName() + " name");
                 // check if the current user is the owner of this site
-                if (currentSite.getUsername().equals(currentUser.getName())){
+                if (currentSite.getUsername().equals(currentUser.getName())) {
 
                     registerDetailsDialog.dismiss();
 
@@ -475,7 +638,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     showDetailsDialog(marker);
 
                     return;
-                }else{
+                } else {
 
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
@@ -492,7 +655,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // init close btn
-        ImageButton closeBtn =  registerDetailsDialog.findViewById(R.id.btn_close);
+        ImageButton closeBtn = registerDetailsDialog.findViewById(R.id.btn_close);
         closeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -508,7 +671,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
 
-                if (!isLoggedIn){
+                if (!isLoggedIn) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
                             .setMessage("You cannot register any site unless you login!")
@@ -520,7 +683,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // validate the super user cannot register a site
-                if (isSuperUser){
+                if (isSuperUser) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
                             .setMessage("You cannot register any site because you are a super user.")
@@ -574,13 +737,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
                 currentSite.setNumberPeopleTested(Integer.parseInt(numberPeopleTested.getText().toString()));
-                firebaseHelper.addSite(currentSite);
+//                firebaseHelper.addSite(currentSite);
 
-                loadSitesFromDb(new FirebaseHelperCallback() {
+                databaseReference.child("sites").child(currentSite.getUsername() + "-"+currentSite.getName())
+                        .updateChildren(currentSite.toMap()).addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
-                    public void onDataChanged(List<Site> sites) {
-                        siteList = (ArrayList<Site>) sites;
-
+                    public void onComplete(@NonNull Task<Void> task) {
                         // display the result alert dialog
                         final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                                 // validate the result of adding the item to the database
@@ -595,6 +757,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Log.d(TAG, "Successfully loaded the db after modify");
                     }
                 });
+
+
+//                loadSitesFromDb(new FirebaseHelperCallback() {
+//                    @Override
+//                    public void onDataChanged(List<Site> sites) {
+//                        siteList = (ArrayList<Site>) sites;
+//
+//                        // display the result alert dialog
+//                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+//                                // validate the result of adding the item to the database
+//                                .setTitle("Success")
+//                                .setIcon(R.drawable.thumb_up)
+//                                .setMessage("The site is successfully updated")
+//                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+//                                .create();
+//                        detailsDialog.dismiss();
+//
+//                        dialog1.show();
+//                        Log.d(TAG, "Successfully loaded the db after modify");
+//                    }
+//                });
                 Log.d(TAG, "Edit button is clicked");
             }
         });
@@ -648,7 +831,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     // attach component in dialog
-    public void attachComponentInDetailsDialog(){
+    public void attachComponentInDetailsDialog() {
 
         backBtn = detailsDialog.findViewById(R.id.backToMapsBtn);
         listBtn = detailsDialog.findViewById(R.id.showListBtn);
@@ -665,11 +848,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     // set text
-    public void setTextToComponentInDetailsDialog(){
+    public void setTextToComponentInDetailsDialog() {
 
         siteTitle.setText(currentSite.getTitle());
-        siteLatitude.setText(currentSite.getLatitude()+ "");
-        siteLongitude.setText(currentSite.getLongitude()+ "");
+        siteLatitude.setText(currentSite.getLatitude() + "");
+        siteLongitude.setText(currentSite.getLongitude() + "");
         siteDescription.setText(currentSite.getDescription());
         ownerSite.setText(currentSite.getUsername());
 
@@ -682,7 +865,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
 
-        if (mMap != null){
+        if (mMap != null) {
             mMap.clear();
 
         }
@@ -696,19 +879,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public boolean checkIfUserInDb(String username) {
         // validate if the user in the db
-        for (User u: userList
+        for (User u : userList
         ) {
             Log.d(TAG, u.getName() + " name checked");
 
 
-            if (u.getName().equals(username)){
-                return true;
+            try {
+                if (u.getName().equals(username)) {
+                    return true;
+                }
+            } catch (Exception e){
+                return false;
             }
+
         }
         return false;
     }
 
-    public Site findCurrentSite(Marker marker){
+    public Site findCurrentSite(Marker marker) {
         // get the latlng
         LatLng latLng = marker.getPosition();
 
@@ -720,7 +908,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
             Log.d(TAG, s.getLatitude() + " site latitude");
-            if (s.getLatitude() == latLng.latitude && s.getLongitude() == latLng.longitude){
+            if (s.getLatitude() == latLng.latitude && s.getLongitude() == latLng.longitude) {
                 Log.d(TAG, latLng.longitude + "  longitude");
 
                 Log.d(TAG, s.getLatitude() + " site latitude in if condition");
@@ -732,7 +920,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return new Site();
     }
 
-    public void showDialogForRegisterSite(Marker marker){
+    public void showDialogForRegisterSite(Marker marker) {
 
         registerSiteDialog = new Dialog(MapsActivity.this);
         registerSiteDialog.setContentView(R.layout.register_site_layout);
@@ -755,9 +943,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, ifUsernameExists + " checked");
 
 
-
                 // validate username
-                if (!ifUsernameExists){
+                if (!ifUsernameExists) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
                             .setMessage("The username is not found in the database!")
@@ -777,7 +964,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, site.getUserList() + " site longitude after loop");
 
                 // validate the leader cannot join his site
-                if (site.getUsername().equals(usernameTxt.getText().toString())){
+                if (site.getUsername().equals(usernameTxt.getText().toString())) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                             .setTitle("Error")
                             .setMessage("The username is already the leader of this site!")
@@ -794,10 +981,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 //check if the site has that user
                 try {
-                    for (String username: site.getUserList()){
+                    for (String username : site.getUserList()) {
                         Log.d(TAG, username + " username in loop");
 
-                        if (username.equals(usernameTxt.getText().toString())){
+                        if (username.equals(usernameTxt.getText().toString())) {
                             isUserExistsInSite = true;
                             break;
                         }
@@ -806,7 +993,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Log.d(TAG, isUserExistsInSite + " is user exists in loop");
 
                     // validate if user is in that site
-                    if (isUserExistsInSite){
+                    if (isUserExistsInSite) {
 
                         final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                                 .setTitle("Error")
@@ -819,7 +1006,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         return;
                     }
 
-                } catch (Exception e){
+                } catch (Exception e) {
                     Log.d(TAG, e.getMessage());
                 }
 
@@ -830,24 +1017,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //validate the username list in site
                 try {
                     usernameList.add(usernameTxt.getText().toString());
-                } catch (Exception e){
+                } catch (Exception e) {
                     usernameList = new ArrayList<>();
                     usernameList.add(usernameTxt.getText().toString());
                 }
 
                 site.setUserList(usernameList);
-                firebaseHelper.addSite(site);
+
+                //TODO: Add the site to the db
+                databaseReference.child("sites").child(site.getUsername() + "-"+ site.getName()).setValue(site.toMap());
+//                firebaseHelper.addSite(site);
 
                 // load again the site
-                loadSitesFromDb(new FirebaseHelperCallback() {
+//                loadSitesFromDb(new FirebaseHelperCallback() {
 
-
-                    @Override
-                    public void onDataChanged(List<Site> sites) {
-                        Log.d(TAG, "Loaded after added successfully");
-                        siteList = (ArrayList<Site>) sites;
-                    }
-                });
+//
+//                    @Override
+//                    public void onDataChanged(List<Site> sites) {
+//                        Log.d(TAG, "Loaded after added successfully");
+//                        siteList = (ArrayList<Site>) sites;
+//                    }
+//                });
 
                 // display the result alert dialog
                 final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
@@ -865,13 +1055,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // check the user type
-    public boolean ifUserIsAbleToSeeDetails(){
+    public boolean ifUserIsAbleToSeeDetails() {
 
         if (!isLoggedIn) {
             return false;
         }
 
-        for (Site site: siteList
+        for (Site site : siteList
         ) {
 
             Log.d(TAG, "Here hello");
@@ -879,7 +1069,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             System.out.println(site.getUsername() + " site's owner name");
             System.out.println(currentUser.getName() + " username");
             // check if the username is as same as owner's site
-            if (currentUser.getName().equals(site.getUsername())){
+            if (currentUser.getName().equals(site.getUsername())) {
                 Log.d(TAG, "Equal");
                 return true;
             }
@@ -943,6 +1133,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Create the Site object
             Site site = new Site();
+            //TODO: setusername = currentUser.getName by default, set to constant for testing purpose
             site.setUsername(currentUser.getName());
             site.setLatitude(latLng.latitude);
             site.setLongitude(latLng.longitude);
@@ -950,22 +1141,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             site.setDescription(descriptionTxt.getText().toString());
 
             // If not null, then add it to the db
-            firebaseHelper.addSite(site);
+            databaseReference.child("sites").child(site.getUsername() + "-"+ site.getName()).setValue(site.toMap());
+//            firebaseHelper.addSite(site);
 
 
             mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
 
             // set the leader to has his own site
+            //TODO: isLeader is true by default, set to false for testing purpose
             isLeader = true;
+//            isLeader = false;
 
             // load again the site
-            loadSitesFromDb(new FirebaseHelperCallback() {
-
-                @Override
-                public void onDataChanged(List<Site> siteList) {
-                    Log.d(TAG, "Loaded after added successfully");
-                }
-            });
+//            loadSitesFromDb(new FirebaseHelperCallback() {
+//
+//                @Override
+//                public void onDataChanged(List<Site> siteList) {
+//                    Log.d(TAG, "Loaded after added successfully");
+//                }
+//            });
 
             // display another alert dialog
             final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
@@ -1015,53 +1209,54 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     // This solves the asynchronous problem with fetch data
-    public interface FirebaseCallback {
-        void onDataChanged(List<User> users);
-    }
-
-    public void loadUsersFromDb(FirebaseCallback firebaseCallback){
-
-        firebaseHelper.getAllUsersMapsActivity(new FirebaseCallback() {
-            @Override
-            public void onDataChanged(List<User> users) {
-                userList = users;
-            }
-        });
-    }
+//    public interface FirebaseCallback {
+//        void onDataChanged(List<User> users);
+//    }
+//
+//    public void loadUsersFromDb(FirebaseCallback firebaseCallback) {
+//
+//        firebaseHelper.getAllUsersMapsActivity(new FirebaseCallback() {
+//            @Override
+//            public void onDataChanged(List<User> users) {
+//                userList = users;
+//            }
+//        });
+//    }
 
     // This solves the asynchronous problem with fetch data
-    public interface FirebaseHelperCallback {
-        void onDataChanged(List<Site> siteList);
-    }
-    // load the sites
-    public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
-        firebaseHelper.getAllSites(new FirebaseHelperCallback() {
-            @Override
-            public void onDataChanged(List<Site> sites) {
-                for (Site site : sites
-                ) {
-                    mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
-                }
-                // take the site
-                siteList = (ArrayList<Site>) sites;
-
-                // Find out the current user a owner
-                isLeader = ifUserIsAbleToSeeDetails();
-            }
-        });
-    }
+//    public interface FirebaseHelperCallback {
+//        void onDataChanged(List<Site> siteList);
+//    }
+//
+//    // load the sites
+//    public void loadSitesFromDb(FirebaseHelperCallback myCallback) {
+//        firebaseHelper.getAllSites(new FirebaseHelperCallback() {
+//            @Override
+//            public void onDataChanged(List<Site> sites) {
+//                for (Site site : sites
+//                ) {
+//                    mMap.addMarker(new MarkerOptions().snippet(site.getDescription()).title(site.getName()).icon(getMarkerIconFromDrawable(drawable)).position(new LatLng(site.getLatitude(), site.getLongitude())));
+//                }
+//                // take the site
+//                siteList = (ArrayList<Site>) sites;
+//
+//                // Find out the current user a owner
+//                isLeader = ifUserIsAbleToSeeDetails();
+//            }
+//        });
+//    }
 
     @Override
     public void onInfoWindowLongClick(@NonNull Marker marker) {
         marker.hideInfoWindow();
         onInfoWindowClose(marker);
-        Toast.makeText(MapsActivity.this, "Long click" , Toast.LENGTH_SHORT).show();
+        Toast.makeText(MapsActivity.this, "Long click", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onInfoWindowClose(@NonNull Marker marker) {
         marker.hideInfoWindow();
-        Toast.makeText(MapsActivity.this, "Close click" , Toast.LENGTH_SHORT).show();
+        Toast.makeText(MapsActivity.this, "Close click", Toast.LENGTH_SHORT).show();
 
     }
 }

@@ -33,10 +33,17 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -55,7 +62,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     private static final String TAG = "LogInActivity";
 
     private FirebaseAuth firebaseAuth;
-    private FirebaseHelper firebaseHelper;
+    private FirebaseDatabase firebaseDatabase;
+    private DatabaseReference databaseReference;
+//    private FirebaseHelper firebaseHelper;
 
     private FirebaseAuth.AuthStateListener authStateListener;
     private GoogleApiClient googleApiClient;
@@ -106,7 +115,11 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         // init firebase services
         firebaseAuth = FirebaseAuth.getInstance();
-        firebaseHelper = new FirebaseHelper(LogInActivity.this);
+//        firebaseHelper = new FirebaseHelper(LogInActivity.this);
+        // init realtime db
+        firebaseDatabase = FirebaseDatabase.getInstance("https://a2-android-56cbb-default-rtdb.asia-southeast1.firebasedatabase.app/");
+        databaseReference = firebaseDatabase.getReference();
+
         //this is where we start the Auth state Listener to listen for whether the user is signed in or not
         authStateListener = firebaseAuth -> {
             // Get signedIn user
@@ -126,12 +139,44 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         userList = new ArrayList<>();
 
-        loadUsersFromDb(new FirebaseHelperCallback() {
+        // load users
+        databaseReference.child("users").addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChanged(List<User> userList) {
-                Log.d(TAG, "Successfully added");
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+
+                long size = snapshot.getChildrenCount();
+                Log.d(TAG, "Size is: " + size);
+
+                GenericTypeIndicator<HashMap<String, User>> genericTypeIndicator =new GenericTypeIndicator<HashMap<String, User>>(){};
+
+                HashMap<String,User> users= snapshot.getValue(genericTypeIndicator);
+
+
+                try {
+                    for (User u : users.values() ){
+                        Log.d(TAG, "Value is: " + u.getEmail());
+                        userList.add(u);
+                    }
+                } catch (Exception e){
+                    Log.d(TAG, "Cannot load the users");
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
             }
         });
+
+//        loadUsersFromDb(new FirebaseHelperCallback() {
+//            @Override
+//            public void onDataChanged(List<User> userList) {
+//                Log.d(TAG, "Successfully added");
+//            }
+//        });
 
         GoogleSignInOptions gso =  new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.web_client_id))//you can also use R.string.default_web_client_id
@@ -311,12 +356,12 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
             if (resultCode == RESULT_OK){
 
-                loadUsersFromDb(new FirebaseHelperCallback() {
-                    @Override
-                    public void onDataChanged(List<User> userList) {
-                        Log.d(LogInActivity.class.getName(), "successfully load db again");
-                    }
-                });
+//                loadUsersFromDb(new FirebaseHelperCallback() {
+//                    @Override
+//                    public void onDataChanged(List<User> userList) {
+//                        Log.d(LogInActivity.class.getName(), "successfully load db again");
+//                    }
+//                });
 
                 Log.d(TAG, userList.size() + " size after loaded");
                 emailText.setText(data.getExtras().get("email").toString());
@@ -345,29 +390,29 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
-
-//    // This solves the asynchronous problem with fetch data
-    public interface FirebaseHelperCallback {
-        void onDataChanged(List<User> userList);
-    }
-
-    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
-
-        try {
-            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
-
-                @Override
-                public void onDataChanged(List<User> users) {
-
-                    userList = users;
-                }
-            });
-        }catch (Exception e){
-            Log.d(TAG, e.getMessage());
-        }
-
-
-    }
+//
+////    // This solves the asynchronous problem with fetch data
+//    public interface FirebaseHelperCallback {
+//        void onDataChanged(List<User> userList);
+//    }
+//
+//    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
+//
+//        try {
+//            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
+//
+//                @Override
+//                public void onDataChanged(List<User> users) {
+//
+//                    userList = users;
+//                }
+//            });
+//        }catch (Exception e){
+//            Log.d(TAG, e.getMessage());
+//        }
+//
+//
+//    }
 
 
 }

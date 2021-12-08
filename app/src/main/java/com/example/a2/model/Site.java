@@ -9,7 +9,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Site implements ClusterItem, Parcelable {
 
@@ -28,6 +30,8 @@ public class Site implements ClusterItem, Parcelable {
     private String username;
     private ArrayList<String> userList;
     private int numberPeopleTested;
+
+
 
 
 
@@ -190,6 +194,19 @@ public class Site implements ClusterItem, Parcelable {
 
     public void setUserList(ArrayList<String> userList) {
         this.userList = userList;
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put(NAME, name);
+        result.put(LATITUDE, latitude);
+        result.put(LONGITUDE, longitude);
+        result.put(DESCRIPTION, description);
+        result.put(USERNAME, username);
+        result.put(USERLIST, userList);
+        result.put(PEOPLETESTED, numberPeopleTested);
+
+        return result;
     }
 
 

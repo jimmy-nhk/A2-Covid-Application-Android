@@ -6,6 +6,9 @@ import android.os.Parcelable;
 
 import androidx.annotation.RequiresApi;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class User implements Parcelable {
 
     private String name;
@@ -89,5 +92,13 @@ public class User implements Parcelable {
                 ", email='" + email + '\'' +
                 ", isSuperUser=" + isSuperUser +
                 '}';
+    }
+
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put(USER_NAME, name);
+        result.put(USER_EMAIL, email);
+        result.put(USER_SUPERUSER, isSuperUser);
+        return result;
     }
 }
