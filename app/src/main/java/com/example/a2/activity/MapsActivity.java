@@ -480,7 +480,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Location currentLocation = (Location) task.getResult();
 
 
-                        moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 15, "My Location");
+                        try {
+
+                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 16, "My Location");
+
+                        } catch (Exception e){
+                            Log.d(TAG, "onComplete: cannot move the map");
+                        }
 
                     } else {
                         Log.d(TAG, "onComplete: current location is null!");
