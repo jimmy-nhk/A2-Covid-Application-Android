@@ -27,6 +27,17 @@
                 android:textStyle="bold" />
 
             <ImageButton
+                android:id="@+id/refreshBtn"
+                android:layout_width="wrap_content"
+                android:layout_marginLeft="935px"
+                android:layout_marginTop="1290px"
+                android:layout_height="wrap_content"
+                android:src="@drawable/refresh_img"
+                android:backgroundTint="@color/blue_phantom"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <ImageButton
                 android:id="@+id/currentPositionBtn"
                 android:layout_width="wrap_content"
                 android:layout_marginLeft="935px"
@@ -34,7 +45,6 @@
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_baseline_my_location_24"
                 android:backgroundTint="@color/blue_phantom"
-                android:text="Current Position"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 

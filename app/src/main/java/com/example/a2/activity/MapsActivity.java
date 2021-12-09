@@ -63,6 +63,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
@@ -180,6 +181,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private void resetMap(){
+        if(mMap != null) {
+            mMap.clear();
+
+//            if(mClusterManager != null){
+//                mClusterManager.clearItems();
+//            }
+
+//            if (mClusterMarkers.size() > 0) {
+//                mClusterMarkers.clear();
+//                mClusterMarkers = new ArrayList<>();
+//            }
+
+            if(mPolylineData.size() > 0){
+                mPolylineData.clear();
+                mPolylineData = new ArrayList<>();
+            }
+
+            readDataFromDb(true);
+        }
+    }
+
+    // remove trip markers
     private void removeTripMarkers(){
 
         for (Marker marker: mTripMarkers){
@@ -241,6 +265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (tempDuration < duration){
                         duration = tempDuration;
                         onPolylineClick(polyline);
+                        zoomRoute(polyline.getPoints());
                     }
 
                     mSelectedMarker.setVisible(false);
@@ -309,7 +334,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         userList = new ArrayList<>();
 
         // read the db
-        readDataFromDb();
+        readDataFromDb(false);
+
+        ImageButton imageButton = findViewById(R.id.refreshBtn);
+        imageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resetMap();
+            }
+        });
 
         signInOutBtn = findViewById(R.id.signInOutBtn);
 
@@ -356,8 +389,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Site oldSite;
 
     // read data from db
-    private void readDataFromDb(){
+    private void readDataFromDb(boolean isGetCurrentLocation){
 
+        if (isGetCurrentLocation){
+            getDeviceLocation();
+        }
         // load users
         databaseReference.child("users").addValueEventListener(new ValueEventListener() {
             @Override
@@ -605,7 +641,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         try {
 
-                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 16, "My Location");
+                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 17, "My Location");
 
                         } catch (Exception e){
                             Log.d(TAG, "onComplete: cannot move the map");
@@ -645,16 +681,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onRestart() {
         super.onRestart();
-        readDataFromDb();
-        getDeviceLocation();
+        readDataFromDb(true);
+
 
     }
 
     @Override
     protected void onResumeFragments() {
         super.onResumeFragments();
-        readDataFromDb();
-        getDeviceLocation();
+        readDataFromDb(true);
     }
 
     @Override
@@ -666,9 +701,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             if (resultCode == RESULT_OK) {
 
-                readDataFromDb();
+                readDataFromDb(true);
 
-                getDeviceLocation();
 
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
@@ -746,6 +780,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setOnInfoWindowClickListener(marker -> {
 
+            if (marker.getTitle().equals("My Location")){
+                return;
+            }
             //TODO: Remember to turn this code below on again
             showDialogDetailsRegister(marker);
 
@@ -1196,6 +1233,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Log.d(TAG, site.getUserList() + " site longitude after loop");
 
+
                 // validate the leader cannot join his site
                 if (site.getUsername().equals(usernameTxt.getText().toString())) {
                     final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
@@ -1488,6 +1526,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         marker.hideInfoWindow();
         Toast.makeText(MapsActivity.this, "Close click", Toast.LENGTH_SHORT).show();
 
+    }
+
+    public void zoomRoute(List<LatLng> lstLatLngRoute) {
+
+        if (mMap == null || lstLatLngRoute == null || lstLatLngRoute.isEmpty()) return;
+
+        LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
+        for (LatLng latLngPoint : lstLatLngRoute)
+            boundsBuilder.include(latLngPoint);
+
+        int routePadding = 120;
+        LatLngBounds latLngBounds = boundsBuilder.build();
+
+        mMap.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(latLngBounds, routePadding),
+                600,
+                null
+        );
     }
 
     @Override

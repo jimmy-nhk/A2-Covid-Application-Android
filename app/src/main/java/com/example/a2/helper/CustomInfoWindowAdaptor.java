@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -56,11 +57,16 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         TextView titleText = view.findViewById(R.id.titleText);
         titleText.setText(title);
 
-//        if (title.equals("My Location")){
-//            TextView registerMessage =  view.findViewById(R.id.registerMessage);
-//            registerMessage.setText("");
-//            return;
-//        }
+        TextView registerMessage =  view.findViewById(R.id.registerMessage);
+
+        if (title.equals("My Location")){
+            registerMessage.setText("");
+            registerMessage.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            registerMessage.setGravity(View.TEXT_ALIGNMENT_CENTER);
+            return;
+        }
+
+        registerMessage.setText("Click here to register");
 
         TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
