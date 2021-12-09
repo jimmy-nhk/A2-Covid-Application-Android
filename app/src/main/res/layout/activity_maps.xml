@@ -35,7 +35,6 @@
                 android:src="@drawable/ic_baseline_my_location_24"
                 android:backgroundTint="@color/blue_phantom"
                 android:text="Current Position"
-                android:onClick="getDeviceLocation"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 

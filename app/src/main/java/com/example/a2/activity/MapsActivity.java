@@ -27,6 +27,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
@@ -48,6 +50,7 @@ import com.example.a2.helper.CustomListAdapter;
 import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
 import com.example.a2.helper.SiteRenderer;
+import com.example.a2.model.PolylineData;
 import com.example.a2.model.Site;
 import com.example.a2.model.User;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -63,6 +66,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.a2.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.collect.Maps;
@@ -74,10 +79,16 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.maps.DirectionsApiRequest;
+import com.google.maps.GeoApiContext;
+import com.google.maps.PendingResult;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.ClusterRenderer;
+import com.google.maps.internal.PolylineEncoding;
+import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.DirectionsRoute;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -87,7 +98,7 @@ import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleMap.OnInfoWindowLongClickListener,
-        GoogleMap.OnInfoWindowCloseListener
+        GoogleMap.OnInfoWindowCloseListener, GoogleMap.OnPolylineClickListener
         , ClusterManager.OnClusterClickListener, ClusterManager.OnClusterItemClickListener {
 
     private static final int LOGIN_CODE = 100;
@@ -104,8 +115,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private DatabaseReference databaseReference;
 
     private ArrayList<Site> siteList;
+    private ArrayList<PolylineData> mPolylineData = new ArrayList<>();
     private List<User> userList;
     private boolean isLoggedIn;
+    private Marker mSelectedMarker = null;
+    private ArrayList<Marker> mTripMarkers = new ArrayList<>();
 
     private ClusterManager<Site> clusterManager;
     private SiteRenderer siteRender;
@@ -122,6 +136,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private CustomInfoWindowAdaptor customInfoWindowAdaptor;
 
+    // Route API (direction
+    private GeoApiContext mGeoApiContext = null;
+    private Handler mHandler = new Handler();
+    private Runnable mRunnable;
+    private Location currentLocation;
+
     /**
      * Component for details dialog
      */
@@ -131,7 +151,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             siteLatitude, siteLongitude, siteDescription, numberPeopleSite;
 
     private EditText numberPeopleTested;
-    private ImageButton signInOutBtn;
+    private ImageButton signInOutBtn, currentPositionBtn;
     private EditText mSearchText;
 
     @Override
@@ -151,6 +171,118 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        // init direction
+        if(mGeoApiContext == null){
+            mGeoApiContext = new GeoApiContext.Builder()
+                            .apiKey(getString(R.string.google_maps_key))
+                            .build();
+
+        }
+    }
+
+    private void removeTripMarkers(){
+
+        for (Marker marker: mTripMarkers){
+            marker.remove();
+        }
+    }
+
+    private void resetSelectedMarker(){
+        if (mSelectedMarker != null){
+
+            mSelectedMarker.setVisible(true);
+            mSelectedMarker = null;
+            removeTripMarkers();
+        }
+    }
+
+    // add polylines
+    private void addPolyLines(DirectionsResult result){
+
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "run: result routes: " + result.routes.length);
+
+                // clear the polyline before adding in
+                if (mPolylineData.size() > 0){
+
+                    for (PolylineData polylineData: mPolylineData){
+                        polylineData.getPolyline().remove();
+                    }
+
+                    mPolylineData.clear();
+                    mPolylineData = new ArrayList<>();
+                }
+
+                double duration = 9999999;
+                for (DirectionsRoute route: result.routes){
+
+                    List<com.google.maps.model.LatLng> decodedPath = PolylineEncoding.decode(route.overviewPolyline.getEncodedPath());
+
+                    List<LatLng> newDecodedPath = new ArrayList<>();
+
+                    for (com.google.maps.model.LatLng latLng: decodedPath){
+
+                        newDecodedPath.add(new LatLng(latLng.lat, latLng.lng));
+                    }
+                    Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodedPath));
+                    polyline.setColor(R.color.colorCardDT);
+                    polyline.setClickable(true);
+
+                    // add to polyline list
+                    mPolylineData.add(new PolylineData(polyline, route.legs[0]));
+
+
+
+                    double tempDuration = route.legs[0].duration.inSeconds;
+
+                    // find the closest route
+                    if (tempDuration < duration){
+                        duration = tempDuration;
+                        onPolylineClick(polyline);
+                    }
+
+                    mSelectedMarker.setVisible(false);
+                }
+            }
+        });
+    }
+
+    private void calculateDirections(Marker marker){
+        Log.d(TAG, "calculateDirections: calculating directions.");
+
+        com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(
+                marker.getPosition().latitude,
+                marker.getPosition().longitude
+        );
+        DirectionsApiRequest directions = new DirectionsApiRequest(mGeoApiContext);
+
+        directions.alternatives(true);
+        directions.origin(
+                new com.google.maps.model.LatLng(
+                        currentLocation.getLatitude(),
+                        currentLocation.getLongitude()
+                )
+        );
+        Log.d(TAG, "calculateDirections: destination: " + destination.toString());
+        directions.destination(destination).setCallback(new PendingResult.Callback<DirectionsResult>() {
+            @Override
+            public void onResult(DirectionsResult result) {
+                Log.d(TAG, "onResult: routes: " + result.routes[0].toString());
+                Log.d(TAG, "onResult: duration: " + result.routes[0].legs[0].duration);
+                Log.d(TAG, "onResult: distance: " + result.routes[0].legs[0].distance);
+                Log.d(TAG, "onResult: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
+
+                addPolyLines(result);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                Log.e(TAG, "onFailure: Fail to get the routes" + e.getMessage() );
+
+            }
+        });
     }
 
     private void initServices(){
@@ -209,6 +341,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        currentPositionBtn = findViewById(R.id.currentPositionBtn);
+
+        currentPositionBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getDeviceLocation();
+            }
+        });
 
     }
 
@@ -270,7 +410,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 try {
-                    mMap.clear();
+//                    mMap.clear();
 
                     // init the siteList again
                     siteList = new ArrayList<>();
@@ -401,23 +541,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
-//        mSearchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-//            @Override
-//            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-//
-//                if (actionId == EditorInfo.IME_ACTION_SEARCH
-//                        || actionId == EditorInfo.IME_ACTION_DONE
-//                        || event.getAction() == KeyEvent.ACTION_DOWN
-//                        || event.getAction() == KeyEvent.KEYCODE_ENTER) {
-//
-//                    // execute our method for searching
-//                    geoLocate();
-//                }
-//
-//                return false;
-//            }
-//        });
-
 
     }
 
@@ -455,7 +578,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // get the current location
-    public void getDeviceLocation(View view) {
+    public void getDeviceLocation() {
         Log.d(TAG, "GetDeviceLocation: getting devices current location");
 
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -477,7 +600,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onComplete(@NonNull Task task) {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "onComplete: found location!");
-                        Location currentLocation = (Location) task.getResult();
+                        currentLocation = (Location) task.getResult();
 
 
                         try {
@@ -504,12 +627,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void moveCamera(LatLng latLng, float zoom, String title) {
         Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
                 latLng.longitude);
+
+        Drawable drawable = getResources().getDrawable(R.drawable.my_location);
+
         MarkerOptions options = new MarkerOptions()
                 .position(latLng)
+                .icon(getMarkerIconFromDrawable(drawable))
                 .title(title);
-        mMap.addMarker(options);
+
+        Marker marker = mMap.addMarker(options);
+        marker.showInfoWindow();
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        readDataFromDb();
+        getDeviceLocation();
+
+    }
+
+    @Override
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+        readDataFromDb();
+        getDeviceLocation();
     }
 
     @Override
@@ -522,6 +667,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (resultCode == RESULT_OK) {
 
                 readDataFromDb();
+
+                getDeviceLocation();
 
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
@@ -539,32 +686,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
 
         mMap = googleMap;
-
-//        loadSitesFromDb(new FirebaseHelperCallback() {
-//            @Override
-//            public void onDataChanged(List<Site> siteList) {
-//                Log.d(TAG, siteList.toString());
-//            }
-//        });
-//
-//        loadUsersFromDb(new FirebaseCallback() {
-//            @Override
-//            public void onDataChanged(List<User> users) {
-//                Log.d(TAG, "Successfully loaded the userList");
-//            }
-//        });
+        mMap.setOnPolylineClickListener(this);
 
         // set up cluster
 //        setUpClusters();
 
-        // Init the camera
-        // Initialize the camera
-        LatLng rmit = new LatLng(10.72978835877818, 106.69307559874231);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(rmit));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(rmit, 15));
 
         //TODO: get current location does not work
-//        getDeviceLocation();
+        getDeviceLocation();
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         // set on map click
@@ -601,13 +730,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // search field
         init();
 
+//        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+//            @Override
+//            public boolean onMarkerClick(@NonNull Marker marker) {
+//                //FIXME: Testing purpose
+//                calculateDirections(marker);
+//                return false;
+//            }
+//        });
         customInfoWindowAdaptor = new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
         // set custom marker window info
         mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
 
 
-        mMap.setOnInfoWindowClickListener(marker -> showDialogDetailsRegister(marker));
+        mMap.setOnInfoWindowClickListener(marker -> {
+
+            //TODO: Remember to turn this code below on again
+            showDialogDetailsRegister(marker);
+
+        });
+
+
 
     }
 
@@ -675,6 +819,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         registerDetailsDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
 
         registerDetailsDialog.show();
+
+        Button directionBtn = registerDetailsDialog.findViewById(R.id.btn_direction);
+
+        directionBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                resetSelectedMarker();
+                //FIXME: testing the code below
+                mSelectedMarker = marker;
+                registerDetailsDialog.dismiss();
+                marker.hideInfoWindow();
+                calculateDirections(marker);
+                marker.hideInfoWindow();
+                marker.setVisible(false);
+            }
+        });
 
         Button detailsBtn = registerDetailsDialog.findViewById(R.id.btn_details);
         detailsBtn.setOnClickListener(new View.OnClickListener() {
@@ -1327,5 +1488,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         marker.hideInfoWindow();
         Toast.makeText(MapsActivity.this, "Close click", Toast.LENGTH_SHORT).show();
 
+    }
+
+    @Override
+    public void onPolylineClick(@NonNull Polyline polyline) {
+
+        int index = 0;
+
+        for(PolylineData polylineData: mPolylineData){
+            index++;
+            Log.d(TAG, "onPolylineClick: toString: " + polylineData.toString());
+            if(polyline.getId().equals(polylineData.getPolyline().getId())){
+                polylineData.getPolyline().setColor(this.getColor(R.color.blue_phantom));
+                polylineData.getPolyline().setZIndex(1);
+
+                LatLng endLocation = new LatLng(
+                        polylineData.getLeg().endLocation.lat,
+                        polylineData.getLeg().endLocation.lng
+                );
+
+                Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(endLocation)
+                        .title("Trip: #" + index)
+//                        .icon(getMarkerIconFromDrawable(drawable))
+                        .snippet("Duration: " + polylineData.getLeg().duration)
+
+                );
+
+                marker.showInfoWindow();
+
+                mTripMarkers.add(marker);
+
+            }
+            else{
+                polylineData.getPolyline().setColor(this.getColor(R.color.colorCardDT));
+                polylineData.getPolyline().setZIndex(0);
+            }
+        }
     }
 }

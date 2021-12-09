@@ -67,8 +67,15 @@
                     android:text="Details"
                     android:textStyle="bold"
                     android:backgroundTint="@color/blue_phantom"
-                    android:layout_marginStart="24dp"
-                    android:layout_marginLeft="24dp"
+                    android:textColor="@color/white"/>
+
+                <Button
+                    android:id="@+id/btn_direction"
+                    android:layout_width="310px"
+                    android:layout_height="wrap_content"
+                    android:text="Direction"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/blue_phantom"
                     android:textColor="@color/white"/>
 
             </LinearLayout>

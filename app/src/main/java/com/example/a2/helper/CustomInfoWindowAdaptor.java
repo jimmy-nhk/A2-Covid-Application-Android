@@ -18,6 +18,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
+import org.w3c.dom.Text;
+
 import java.util.List;
 
 public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
@@ -54,8 +56,15 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         TextView titleText = view.findViewById(R.id.titleText);
         titleText.setText(title);
 
+//        if (title.equals("My Location")){
+//            TextView registerMessage =  view.findViewById(R.id.registerMessage);
+//            registerMessage.setText("");
+//            return;
+//        }
+
         TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
+
 
 
         view.setBackground(mContext.getResources().getDrawable(R.drawable.bg_window));
