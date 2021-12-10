@@ -196,8 +196,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         // validate in case it cannot sign in with authentication
         try {
             //TODO: remember to change back to normal way
-//            firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
-            firebaseAuth.signInWithEmailAndPassword("2@gmail.com" , "123456")
+            firebaseAuth.signInWithEmailAndPassword(emailText.getText().toString(), passwordText.getText().toString())
+//            firebaseAuth.signInWithEmailAndPassword("2@gmail.com" , "123456")
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
@@ -241,7 +241,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
         } catch (Exception e){
             errorLoginTxt.setVisibility(View.VISIBLE);
-            errorLoginTxt.setText("Cannot log in");
+            errorLoginTxt.setText("Please enter your mail and password.");
             return;
         }
 
@@ -257,6 +257,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         Log.d(TAG, mail + " mail2");
 
         Log.d(TAG, userList.size() + " size");
+
         // validate the user
         for (User u: userList
              ) {

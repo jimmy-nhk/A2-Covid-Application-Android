@@ -16,16 +16,12 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -33,10 +29,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -45,9 +38,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
-import com.example.a2.data.Result;
 import com.example.a2.helper.CustomListAdapter;
-import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
 import com.example.a2.helper.SiteRenderer;
 import com.example.a2.model.PolylineData;
@@ -71,7 +62,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.common.collect.Maps;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -79,7 +69,6 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
 import com.google.maps.PendingResult;
@@ -91,7 +80,6 @@ import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -111,7 +99,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected LocationRequest mLocationRequest;
 
     private FirebaseAuth firebaseAuth;
-//    private FirebaseHelper firebaseHelper;
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference databaseReference;
 
@@ -129,7 +116,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Site currentSite;
     private boolean isLeader;
     private boolean isSuperUser;
-    private boolean isJustLoggedIn;
     private Dialog createSiteDialog;
     private Dialog registerSiteDialog;
 
@@ -149,9 +135,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button backBtn, listBtn, editBtn;
 
     private TextView siteTitle, ownerSite,
-            siteLatitude, siteLongitude, siteDescription, numberPeopleSite;
+            siteLatitude, siteLongitude,  numberPeopleSite,siteDescription;
 
-    private EditText numberPeopleTested;
+    private EditText numberPeopleTested ;
+
     private ImageButton signInOutBtn, currentPositionBtn;
     private EditText mSearchText;
 
@@ -179,6 +166,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .build();
 
         }
+
+        try {
+            Intent intent = getIntent();
+            currentUser = intent.getParcelableExtra("user");
+            Log.d(TAG, "onCreate: currentUser name: " + currentUser.getName());
+            isLoggedIn = true;
+            signInOutBtn.setImageResource(R.drawable.logout_image);
+
+        } catch (Exception e){
+            currentUser = new User();
+        }
+
     }
 
     private void resetMap(){
@@ -322,7 +321,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //TODO: isloggedin is true for testing now! by default, it is false
         isLoggedIn = false;
 //        isLoggedIn = true;
-        isJustLoggedIn = false;
         currentUser = new User();
         firebaseAuth = FirebaseAuth.getInstance();
         mSearchText = findViewById(R.id.input_search);
@@ -334,7 +332,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         userList = new ArrayList<>();
 
         // read the db
-        readDataFromDb(false);
+        readDataFromDb(true);
 
         ImageButton imageButton = findViewById(R.id.refreshBtn);
         imageButton.setOnClickListener(new View.OnClickListener() {
@@ -391,9 +389,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // read data from db
     private void readDataFromDb(boolean isGetCurrentLocation){
 
+        // get current location
         if (isGetCurrentLocation){
             getDeviceLocation();
         }
+
         // load users
         databaseReference.child("users").addValueEventListener(new ValueEventListener() {
             @Override
@@ -402,7 +402,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // whenever data at this location is updated.
 
                 long size = snapshot.getChildrenCount();
-                Log.d(TAG, "Size is: " + size);
+//                Log.d(TAG, "Size is: " + size);
 
                 GenericTypeIndicator<HashMap<String, User>> genericTypeIndicator =new GenericTypeIndicator<HashMap<String, User>>(){};
 
@@ -476,7 +476,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //
 //                            Log.d(TAG, "sitesDb: notification on change here");
 
-                            //TODO: A bug in the first load. It does not update the notification
 
                             //Fixme: A bug in the first load. It does not update the notification
 
@@ -539,10 +538,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         builder = new NotificationCompat.Builder(context, id);
         intent = new Intent(context, MapsActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
+        intent.putExtra("user" , currentUser);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+
+// Create the TaskStackBuilder and add the intent, which inflates the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntentWithParentStack(intent);
+        stackBuilder.editIntentAt(0).putExtra("user" , currentUser);
+
+// Get the PendingIntent containing the entire back stack
+        pendingIntent =
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+//        pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
         builder.setContentTitle(aMessage)                            // required
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)   // required
+                .setSmallIcon(R.drawable.google)   // required
                 .setContentText("Something has changed in your site") // required
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setAutoCancel(true)
@@ -579,6 +590,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
     }
+
 
     private void geoLocate() {
         Log.d(TAG, "geoLocate: geolocating");
@@ -696,6 +708,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+
+        // checking the notification sending intent
+        if (requestCode == 0){
+
+            isLoggedIn = true;
+            currentUser = data.getParcelableExtra("user");
+            isSuperUser = currentUser.getIsSuperUser();
+        }
 
         if (requestCode == LOGIN_CODE) {
 
@@ -849,6 +869,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // init current site
         currentSite = findCurrentSite(marker);
+
+        Log.d(TAG, "showDialogDetailsRegister: currentSite- get userlist: " + currentSite.getUserList().size());
 
         Dialog registerDetailsDialog = new Dialog(MapsActivity.this);
         registerDetailsDialog.setContentView(R.layout.register_see_details_layout);
@@ -1006,6 +1028,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         editBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                currentSite.setDescription(siteDescription.getText().toString());
                 currentSite.setNumberPeopleTested(Integer.parseInt(numberPeopleTested.getText().toString()));
 //                firebaseHelper.addSite(currentSite);
 
@@ -1028,26 +1052,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 });
 
-
-//                loadSitesFromDb(new FirebaseHelperCallback() {
-//                    @Override
-//                    public void onDataChanged(List<Site> sites) {
-//                        siteList = (ArrayList<Site>) sites;
-//
-//                        // display the result alert dialog
-//                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-//                                // validate the result of adding the item to the database
-//                                .setTitle("Success")
-//                                .setIcon(R.drawable.thumb_up)
-//                                .setMessage("The site is successfully updated")
-//                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-//                                .create();
-//                        detailsDialog.dismiss();
-//
-//                        dialog1.show();
-//                        Log.d(TAG, "Successfully loaded the db after modify");
-//                    }
-//                });
                 Log.d(TAG, "Edit button is clicked");
             }
         });
@@ -1058,14 +1062,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
                 Log.d(TAG, "Click list volunteer");
                 showListVolunteer();
-//                Intent intent = new Intent(MapsActivity.this, TestActivity.class);
-////                String [] tmp = currentSite.getUserList().toArray(new String[0]);
-//
-//                ArrayList<String> tmp =  new ArrayList<>();
-//                tmp.add("Hello");
-//                tmp.add("Chao");
-//                intent.putExtra("tmp", tmp);
-//                startActivity(intent);
             }
         });
     }
@@ -1126,6 +1122,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         siteDescription.setText(currentSite.getDescription());
         ownerSite.setText(currentSite.getUsername());
 
+        Log.d(TAG, "setTextToComponentInDetailsDialog: currentSite.getUserStringLists().size() = " + currentSite.getUserList().size());
         numberPeopleSite.setText(currentSite.getUserList().size() + " ");
         numberPeopleTested.setText(currentSite.getNumberPeopleTested() + "");
 
@@ -1139,12 +1136,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.clear();
 
         }
+
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull String name, @NonNull Context context, @NonNull AttributeSet attrs) {
         return super.onCreateView(name, context, attrs);
+
+
     }
 
     public boolean checkIfUserInDb(String username) {

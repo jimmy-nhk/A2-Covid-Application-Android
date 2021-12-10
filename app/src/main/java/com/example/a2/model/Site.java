@@ -33,8 +33,6 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
 
 
 
-
-
     public Site(){
         userList = new ArrayList<>();
     };
@@ -43,7 +41,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         this.numberPeopleTested = numberPeopleTested;
     }
 
-    public Site( String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested) {
+    public Site(String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -88,6 +86,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
 
         dest.writeString(username);
         dest.writeStringList(userList);
+
 
         try {
             System.out.println(userList.size() + "  userlist size in write to parcel");

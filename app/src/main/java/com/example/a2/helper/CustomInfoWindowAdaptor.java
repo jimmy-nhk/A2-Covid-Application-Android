@@ -58,9 +58,11 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         titleText.setText(title);
 
         TextView registerMessage =  view.findViewById(R.id.registerMessage);
+        TextView description = view.findViewById(R.id.description);
 
         if (title.equals("My Location")){
             registerMessage.setText("");
+            description.setText("");
             registerMessage.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
             registerMessage.setGravity(View.TEXT_ALIGNMENT_CENTER);
             return;
@@ -68,7 +70,6 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
 
         registerMessage.setText("Click here to register");
 
-        TextView description = view.findViewById(R.id.description);
         description.setText(marker.getSnippet());
 
 
