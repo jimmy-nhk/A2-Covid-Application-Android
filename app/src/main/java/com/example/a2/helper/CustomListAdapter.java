@@ -1,6 +1,8 @@
 package com.example.a2.helper;
 
 import com.example.a2.R;
+import com.example.a2.model.User;
+
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,21 +11,22 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class CustomListAdapter extends BaseAdapter {
-    private ArrayList<String> userList;
+    private List<User> users;
     private LayoutInflater layoutInflater;
-    public CustomListAdapter(Context aContext, ArrayList<String> userList) {
-        this.userList = userList;
+    public CustomListAdapter(Context aContext, List<User> users) {
+        this.users = users;
         layoutInflater = LayoutInflater.from(aContext);
     }
     @Override
     public int getCount() {
-        return userList.size();
+        return users.size();
     }
     @Override
     public Object getItem(int position) {
-        return userList.get(position);
+        return users.get(position);
     }
     @Override
     public long getItemId(int position) {
@@ -42,8 +45,8 @@ public class CustomListAdapter extends BaseAdapter {
         } else {
             holder = (ViewHolder) v.getTag();
         }
-        holder.username.setText(userList.get(position));
-        holder.mail.setText(userList.get(position));
+        holder.username.setText(users.get(position).getName());
+        holder.mail.setText(users.get(position).getEmail());
         return v;
     }
     static class ViewHolder {

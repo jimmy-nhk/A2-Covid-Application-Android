@@ -2,6 +2,9 @@ package com.example.a2.model;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -22,6 +25,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     public final static String USERNAME = "username";
     public final static String USERLIST = "userList";
     public final static String PEOPLETESTED = "numberPeopleTested";
+    public final static String USERS = "users";
 
     private String name;
     private double latitude;
@@ -30,6 +34,8 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     private String username;
     private ArrayList<String> userList;
     private int numberPeopleTested;
+    private List<User> users;
+
 
 
 
@@ -41,7 +47,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         this.numberPeopleTested = numberPeopleTested;
     }
 
-    public Site(String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested) {
+    public Site(String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested, List<User> users) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -49,10 +55,12 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         this.username = username;
         this.userList = userList;
         this.numberPeopleTested = numberPeopleTested;
+        this.users = users;
     }
 
 
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     protected Site(Parcel in) {
         name = in.readString();
         latitude = in.readDouble();
@@ -73,8 +81,11 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         numberPeopleTested = in.readInt();
         System.out.println(numberPeopleTested + " in create to parcel");
 
+        users = new ArrayList<>();
+        in.readList(users, User.class.getClassLoader());
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     public void writeToParcel(Parcel dest, int flags) {
 
@@ -97,12 +108,13 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         dest.writeInt(numberPeopleTested);
         System.out.println(numberPeopleTested + " in write to parcel");
 
-
+        dest.writeParcelableList(users,flags);
         System.out.println("write site");
 
     }
 
     public static final Creator<Site> CREATOR = new Creator<Site>() {
+        @RequiresApi(api = Build.VERSION_CODES.Q)
         @Override
         public Site createFromParcel(Parcel in) {
             return new Site(in);
@@ -114,6 +126,13 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         }
     };
 
+    public List<User> getUsers() {
+        return users;
+    }
+
+    public void setUsers(List<User> users) {
+        this.users = users;
+    }
 
     public String getDescription() {
         return description;
@@ -204,6 +223,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         result.put(USERNAME, username);
         result.put(USERLIST, userList);
         result.put(PEOPLETESTED, numberPeopleTested);
+        result.put(USERS, users);
 
         return result;
     }

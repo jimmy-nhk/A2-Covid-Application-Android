@@ -14,6 +14,7 @@
         android:text="Title"
         android:textSize="50px"
         android:height="80px"
+        android:textColor="@color/white"
         android:textStyle="bold|italic"
         android:id="@+id/titleText"/>
 
@@ -25,6 +26,7 @@
         android:ems="10"
         android:gravity="start|top"
         android:inputType="textMultiLine"
+        android:textColor="@color/white"
         android:textSize="40px"
         android:id="@+id/description"/>
 
@@ -37,6 +39,7 @@
         android:text="Click here to register"
         android:textSize="50px"
         android:textAlignment="center"
+        android:textColor="@color/white"
         android:height="80px"
         android:textStyle="bold|italic"
         />

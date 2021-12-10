@@ -186,7 +186,7 @@
                 android:layout_weight="2"
                 />
 
-            <TextView
+            <EditText
                 android:layout_marginLeft="40px"
                 android:layout_width="400px"
                 android:layout_height="200px"

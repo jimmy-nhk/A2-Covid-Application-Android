@@ -13,6 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_marginLeft="40px"
         android:paddingTop="2dp"
         android:text="User"
         android:textSize="18sp"
@@ -32,6 +33,7 @@
         android:layout_alignParentRight="true"
         android:layout_weight="1"
         android:text="Gmail"
+        android:layout_marginRight="40px"
         android:textColor="#343434"
         android:textSize="12sp" />
 

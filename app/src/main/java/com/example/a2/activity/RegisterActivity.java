@@ -15,7 +15,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
-import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.helper.CustomInfoWindowAdaptor;
 import com.example.a2.model.Site;
 import com.example.a2.model.User;

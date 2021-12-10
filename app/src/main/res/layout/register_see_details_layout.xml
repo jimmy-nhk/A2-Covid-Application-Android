@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
+    android:layout_width="1000px"
     android:layout_height="wrap_content"
     >
 
@@ -51,7 +51,7 @@
 
                 <Button
                     android:id="@+id/btn_register"
-                    android:layout_width="300px"
+                    android:layout_width="290px"
                     android:layout_height="wrap_content"
                     android:text="Register"
                     android:textStyle="bold"
@@ -62,7 +62,7 @@
 
                 <Button
                     android:id="@+id/btn_details"
-                    android:layout_width="300px"
+                    android:layout_width="290px"
                     android:layout_height="wrap_content"
                     android:text="Details"
                     android:textStyle="bold"
@@ -71,7 +71,7 @@
 
                 <Button
                     android:id="@+id/btn_direction"
-                    android:layout_width="310px"
+                    android:layout_width="305px"
                     android:layout_height="wrap_content"
                     android:text="Direction"
                     android:textStyle="bold"

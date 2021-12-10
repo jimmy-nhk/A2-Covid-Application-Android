@@ -14,7 +14,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.a2.R;
-import com.example.a2.controller.FirebaseHelper;
 import com.example.a2.model.User;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -51,7 +50,6 @@ import java.util.Objects;
 public class LogInActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
 
     public final static int REGISTER_CODE = 101;
-    public final static int MAPS_CODE = 201;
 
     private EditText emailText;
     private EditText passwordText;
@@ -64,7 +62,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     private FirebaseAuth firebaseAuth;
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference databaseReference;
-//    private FirebaseHelper firebaseHelper;
 
     private FirebaseAuth.AuthStateListener authStateListener;
     private GoogleApiClient googleApiClient;
@@ -171,12 +168,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
             }
         });
 
-//        loadUsersFromDb(new FirebaseHelperCallback() {
-//            @Override
-//            public void onDataChanged(List<User> userList) {
-//                Log.d(TAG, "Successfully added");
-//            }
-//        });
 
         GoogleSignInOptions gso =  new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.web_client_id))//you can also use R.string.default_web_client_id
@@ -216,9 +207,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                                     user = searchUser(userFirebase.getEmail());
                                     Log.d(TAG, user.getEmail().toString());
 
-//                                    Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
-//                                    intent.putExtra("user" , user);
-//                                    startActivity(intent);
 
                                     Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
                                     intent.putExtra("user" , user);
@@ -339,10 +327,13 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     // update UI
     private void updateUI(User user) {
 
+        databaseReference.child("users").child(user.getName()).setValue(user.toMap());
+
         Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
 
         intent.putExtra("user",user );
-        startActivityForResult(intent, MAPS_CODE);
+        setResult(RESULT_OK, intent);
+        finish();
     }
 
 
@@ -357,12 +348,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
             if (resultCode == RESULT_OK){
 
-//                loadUsersFromDb(new FirebaseHelperCallback() {
-//                    @Override
-//                    public void onDataChanged(List<User> userList) {
-//                        Log.d(LogInActivity.class.getName(), "successfully load db again");
-//                    }
-//                });
+
 
                 Log.d(TAG, userList.size() + " size after loaded");
                 emailText.setText(data.getExtras().get("email").toString());
@@ -390,30 +376,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
-
-//
-////    // This solves the asynchronous problem with fetch data
-//    public interface FirebaseHelperCallback {
-//        void onDataChanged(List<User> userList);
-//    }
-//
-//    public void loadUsersFromDb(LogInActivity.FirebaseHelperCallback myCallback) {
-//
-//        try {
-//            firebaseHelper.getAllUsersForLogin(new LogInActivity.FirebaseHelperCallback() {
-//
-//                @Override
-//                public void onDataChanged(List<User> users) {
-//
-//                    userList = users;
-//                }
-//            });
-//        }catch (Exception e){
-//            Log.d(TAG, e.getMessage());
-//        }
-//
-//
-//    }
 
 
 }

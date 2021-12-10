@@ -75,7 +75,7 @@
                 android:layout_centerVertical="true"
                 android:layout_toRightOf="@+id/ic_magnify"
                 android:background="@null"
-                android:hint="Enter Address, City or Zip Code"
+                android:hint="Enter Marker Title, Description or Leader's name"
                 android:imeOptions="actionSearch"
                 android:textColor="#000"
                 android:textSize="15sp" />
