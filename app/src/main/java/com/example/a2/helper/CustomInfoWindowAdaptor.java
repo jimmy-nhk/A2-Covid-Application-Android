@@ -2,6 +2,7 @@ package com.example.a2.helper;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +22,8 @@ import com.google.android.gms.maps.model.Marker;
 
 import org.w3c.dom.Text;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.List;
 
 public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
@@ -52,6 +55,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
 
     // render the window
     private void renderWindowText(Marker marker, View view){
+
 
         String title = marker.getTitle();
         TextView titleText = view.findViewById(R.id.titleText);

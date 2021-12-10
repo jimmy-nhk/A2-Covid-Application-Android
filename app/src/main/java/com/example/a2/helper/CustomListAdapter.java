@@ -22,7 +22,12 @@ public class CustomListAdapter extends BaseAdapter {
     }
     @Override
     public int getCount() {
-        return users.size();
+        try{
+            return users.size();
+
+        } catch (Exception e){
+            return 0;
+        }
     }
     @Override
     public Object getItem(int position) {

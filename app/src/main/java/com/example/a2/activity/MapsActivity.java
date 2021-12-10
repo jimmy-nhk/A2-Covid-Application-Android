@@ -80,6 +80,11 @@ import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -1095,6 +1100,85 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         CustomListAdapter customListAdapter = new CustomListAdapter(MapsActivity.this, currentSite.getUsers());
         lv.setAdapter(customListAdapter);
 
+
+        // download btn
+        Button btnDownload = listDialog.findViewById(R.id.downloadBtn);
+
+        btnDownload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                try {
+                    // validate the size to 0
+                    if (currentSite.getUsers().size() == 0){
+
+                    }
+                }catch (Exception e){
+                    // display the result alert dialog
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            // validate the result of adding the item to the database
+                            .setTitle("Announcement")
+                            .setIcon(R.drawable.ic_warning)
+                            .setMessage("There is no volunteer yet to download")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+                    listDialog.dismiss();
+
+                    dialog1.show();
+                    return;
+                }
+
+//                File path = MapsActivity.this.getFilesDir();
+//
+//
+//
+//
+//                File file = new File(path, currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt");
+
+
+
+                try {
+                    FileOutputStream fOut = openFileOutput(currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt",
+                            MODE_PRIVATE);
+                    ObjectOutputStream osw = new ObjectOutputStream(fOut);
+//                    FileOutputStream stream = new FileOutputStream(file);
+                    // write title first
+                    String titleString = "Site: " +currentSite.getTitle() + "\n";
+//                    stream.write(titleString.getBytes());
+                    osw.write(titleString.getBytes());
+
+                    //volunteer lists:
+                    for (User u: currentSite.getUsers()
+                         ) {
+
+                        String userString = "Username: " + u.getName() + " , mail: " + u.getEmail() + "\n";
+//                        stream.write(userString.getBytes());
+                        osw.write(userString.getBytes());
+                    }
+
+                    osw.close();
+//                    stream.close();
+
+                    // display the result alert dialog
+                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                            // validate the result of adding the item to the database
+                            .setTitle("Success")
+                            .setIcon(R.drawable.thumb_up)
+                            .setMessage("The user list is successfully downloaded")
+                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                            .create();
+                    listDialog.dismiss();
+
+                    dialog1.show();
+
+                } catch (Exception e){
+                    Log.d("Download", "Cannot read to the file");
+                }
+
+
+            }
+        });
+
         listDialog.show();
 
     }
@@ -1535,10 +1619,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         polylineData.getLeg().endLocation.lng
                 );
 
+                Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_my_location_24);
+
                 Marker marker = mMap.addMarker(new MarkerOptions()
                                 .position(endLocation)
                                 .title("Trip: #" + index)
-//                        .icon(getMarkerIconFromDrawable(drawable))
+                                .icon(getMarkerIconFromDrawable(drawable))
                                 .snippet("Duration: " + polylineData.getLeg().duration)
 
                 );
