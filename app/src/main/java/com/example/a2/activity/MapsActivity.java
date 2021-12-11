@@ -80,11 +80,8 @@ import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -121,6 +118,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Site currentSite;
     private boolean isLeader;
     private boolean isSuperUser;
+    private boolean isZoomedIn;
     private Dialog createSiteDialog;
     private Dialog registerSiteDialog;
 
@@ -387,7 +385,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         currentPositionBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getDeviceLocation(true);
+                isZoomedIn = true;
+                getDeviceLocation();
             }
         });
 
@@ -455,7 +454,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // get current location
                     if (isGetCurrentLocation) {
-                        getDeviceLocation(false);
+                        getDeviceLocation();
                     }
 
                     // init the siteList again
@@ -633,8 +632,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+
     // get the current location
-    public void getDeviceLocation(boolean isZoomedIn) {
+    public void getDeviceLocation() {
         Log.d(TAG, "GetDeviceLocation: getting devices current location");
 
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -661,7 +661,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         try {
 
-                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 17, "My Location", isZoomedIn);
+                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 17, "My Location");
 
                         } catch (Exception e) {
                             Log.d(TAG, "onComplete: cannot move the map");
@@ -680,7 +680,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void moveCamera(LatLng latLng, float zoom, String title, boolean isZoomedIn) {
+    private void moveCamera(LatLng latLng, float zoom, String title) {
 //        Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
 //                latLng.longitude);
 
@@ -753,7 +753,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         //TODO: get current location does not work
-        getDeviceLocation(true);
+        isZoomedIn = true;
+        getDeviceLocation();
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         // set on map click
@@ -1038,6 +1039,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                Log.d(TAG, "editBtn: siteDescription: " + siteDescription.getText().toString());
 //                Log.d(TAG, "editBtn: numberPeopleTested: " + numberPeopleTested.getText().toString());
 
+                isZoomedIn = false;
                 currentSite.setDescription(siteDescription.getText().toString());
                 currentSite.setNumberPeopleTested(Integer.parseInt(numberPeopleTested.getText().toString()));
 
@@ -1156,6 +1158,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         osw.write(userString.getBytes());
                     }
 
+                    /* ensure that everything is
+                     * really written out and close */
+                    osw.flush();
                     osw.close();
 //                    stream.close();
 
@@ -1619,7 +1624,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         polylineData.getLeg().endLocation.lng
                 );
 
-                Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_my_location_24);
+                Drawable drawable = getResources().getDrawable(R.drawable.my_end_location);
 
                 Marker marker = mMap.addMarker(new MarkerOptions()
                                 .position(endLocation)

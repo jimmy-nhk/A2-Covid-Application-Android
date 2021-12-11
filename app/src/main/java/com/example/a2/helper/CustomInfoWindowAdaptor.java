@@ -3,6 +3,7 @@ package com.example.a2.helper;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,12 +69,14 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
             description.setText("My Location");
             titleText.setText("");
             registerMessage.setText("");
+            description.setGravity(Gravity.CENTER_HORIZONTAL);
             description.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
 
             return;
         }
 
         description.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
+        description.setGravity(Gravity.LEFT);
 
         registerMessage.setText("Click here to register");
 
