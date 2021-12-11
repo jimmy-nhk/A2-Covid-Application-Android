@@ -44,7 +44,6 @@ public class RegisterActivity extends AppCompatActivity {
     private Button signUpBtn;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
-//    private FirebaseHelper firebaseHelper;
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference databaseReference;
 
@@ -225,39 +224,18 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
 
-//    public interface FirebaseHelperCallback {
-//        void onDataChanged(List<User> users);
-//    }
-//
-//    public void loadUsersFromDb(RegisterActivity.FirebaseHelperCallback myCallback) {
-//
-//
-//        firebaseHelper.getAllUsersForRegister(new RegisterActivity.FirebaseHelperCallback() {
-//            @Override
-//            public void onDataChanged(List<User> users) {
-//
-//                userList = users;
-//            }
-//        });
-//    }
-
 
     public void initService(){
         // Init firestone
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
-//        firebaseHelper = new FirebaseHelper(RegisterActivity.this);
+
         // init realtime db
         firebaseDatabase = FirebaseDatabase.getInstance("https://a2-android-56cbb-default-rtdb.asia-southeast1.firebasedatabase.app/");
         databaseReference = firebaseDatabase.getReference();
         userList = new ArrayList<>();
 
-//        loadUsersFromDb(new FirebaseHelperCallback() {
-//            @Override
-//            public void onDataChanged(List<User> users) {
-//                Log.d(RegisterActivity.class.getName(), "Load user register successfully");
-//            }
-//        });
+
     }
 
     public void attachComponents(){

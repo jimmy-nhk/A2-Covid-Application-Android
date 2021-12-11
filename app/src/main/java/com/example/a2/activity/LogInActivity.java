@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.nfc.Tag;
 import android.os.Bundle;
@@ -207,11 +208,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                                     user = searchUser(userFirebase.getEmail());
                                     Log.d(TAG, user.getEmail().toString());
 
+                                    // update UI (send intent)
+                                    updateUI(user);
 
-                                    Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
-                                    intent.putExtra("user" , user);
-                                    setResult(RESULT_OK , intent);
-                                    finish();
 
                                 } catch (Exception e){
                                     Log.d(TAG, "Cannot validate the user in firestone");
@@ -308,6 +307,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                             // create the user
                             User user = new User(userFirebase.getDisplayName(), userFirebase.getEmail(), true);
 
+                            databaseReference.child("users").child(user.getName()).setValue(user.toMap());
 
                             // update the UI
                             updateUI(user);
@@ -327,7 +327,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
     // update UI
     private void updateUI(User user) {
 
-        databaseReference.child("users").child(user.getName()).setValue(user.toMap());
 
         Intent intent = new Intent(LogInActivity.this, MapsActivity.class);
 
@@ -352,6 +351,18 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
                 Log.d(TAG, userList.size() + " size after loaded");
                 emailText.setText(data.getExtras().get("email").toString());
+
+                // display the result alert dialog
+                final AlertDialog dialog1 = new AlertDialog.Builder(LogInActivity.this)
+                        // validate the result of adding the item to the database
+                        .setTitle("Success")
+                        .setIcon(R.drawable.thumb_up)
+                        .setMessage("You have sign up successfully.")
+                        .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                        .create();
+
+
+                dialog1.show();
                 return;
             }
         }

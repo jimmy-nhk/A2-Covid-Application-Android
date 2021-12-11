@@ -23,7 +23,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     public final static String LONGITUDE = "longitude";
     public final static String DESCRIPTION = "description";
     public final static String USERNAME = "username";
-    public final static String USERLIST = "userList";
+//    public final static String USERLIST = "userList";
     public final static String PEOPLETESTED = "numberPeopleTested";
     public final static String USERS = "users";
 
@@ -32,7 +32,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     private double longitude;
     private String description;
     private String username;
-    private ArrayList<String> userList;
+//    private ArrayList<String> userList;
     private int numberPeopleTested;
     private List<User> users;
 
@@ -40,20 +40,20 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
 
 
     public Site(){
-        userList = new ArrayList<>();
+        users = new ArrayList<>();
     };
 
     public Site(int numberPeopleTested){
         this.numberPeopleTested = numberPeopleTested;
     }
 
-    public Site(String username, String name, double latitude, double longitude, ArrayList<String> userList, String description, int numberPeopleTested, List<User> users) {
+    public Site(String username, String name, double latitude, double longitude, String description, int numberPeopleTested, List<User> users) {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
         this.description = description;
         this.username = username;
-        this.userList = userList;
+//        this.userList = userList;
         this.numberPeopleTested = numberPeopleTested;
         this.users = users;
     }
@@ -67,14 +67,14 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         longitude = in.readDouble();
         description = in.readString();
         username = in.readString();
-        userList = in.createStringArrayList();
+//        userList = in.createStringArrayList();
 
-        try {
-            System.out.println(userList.size() + "  userlist size in create to parcel");
-
-        } catch (Exception e){
-
-        }
+//        try {
+////            System.out.println(userList.size() + "  userlist size in create to parcel");
+//
+//        } catch (Exception e){
+//
+//        }
 
         // error occurs here ???
 //        numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
@@ -96,15 +96,15 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         dest.writeString(description);
 
         dest.writeString(username);
-        dest.writeStringList(userList);
+//        dest.writeStringList(userList);
 
 
-        try {
-            System.out.println(userList.size() + "  userlist size in write to parcel");
-
-        } catch (Exception e){
-
-        }
+//        try {
+//            System.out.println(userList.size() + "  userlist size in write to parcel");
+//
+//        } catch (Exception e){
+//
+//        }
         dest.writeInt(numberPeopleTested);
         System.out.println(numberPeopleTested + " in write to parcel");
 
@@ -205,14 +205,14 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     public void setUsername(String username) {
         this.username = username;
     }
-
-    public ArrayList<String> getUserList() {
-        return userList;
-    }
-
-    public void setUserList(ArrayList<String> userList) {
-        this.userList = userList;
-    }
+//
+//    public ArrayList<String> getUserList() {
+//        return userList;
+//    }
+//
+//    public void setUserList(ArrayList<String> userList) {
+//        this.userList = userList;
+//    }
 
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
@@ -221,7 +221,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         result.put(LONGITUDE, longitude);
         result.put(DESCRIPTION, description);
         result.put(USERNAME, username);
-        result.put(USERLIST, userList);
+//        result.put(USERLIST, userList);
         result.put(PEOPLETESTED, numberPeopleTested);
         result.put(USERS, users);
 
@@ -236,9 +236,9 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
             && this.description.equals(o.description)
             && this.latitude == o.latitude
             && this.longitude == o.longitude
-            && this.userList.equals(o.userList)
             && this.numberPeopleTested == o.numberPeopleTested
-            && this.username.equals(o.username)) {
+            && this.username.equals(o.username)
+            && this.users.equals(o.users)) {
             return 0;
         }
 

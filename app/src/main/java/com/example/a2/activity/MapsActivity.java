@@ -140,7 +140,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private TextView siteTitle, ownerSite,
             siteLatitude, siteLongitude, numberPeopleSite;
 
-    private EditText numberPeopleTested , siteDescription;
+    private EditText numberPeopleTested, siteDescription;
 
     private ImageButton signInOutBtn, currentPositionBtn;
     private EditText mSearchText;
@@ -495,7 +495,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 } else {
                                     oldSite = site;
                                     Log.d(TAG, "readDataFromDb: successfully send notification");
+
                                     // validate not to render notification
+                                    if (currentSite == null || oldSite == null) {
+                                        return;
+                                    }
+
                                     createNotification(site.getTitle(), getApplicationContext());
                                     return;
                                 }
@@ -510,6 +515,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     } catch (Exception e) {
                         currentSite = null;
                         oldSite = null;
+                        return;
                     }
 
                 }
@@ -615,7 +621,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 //TODO: filter on more criteria if have time
                 if (Objects.requireNonNull(site.getTitle()).contains(searchString) || site.getDescription().contains(searchString)
-                    || site.getUsername().contains(searchString)) {
+                        || site.getUsername().contains(searchString)) {
                     sites.add(site);
                 }
             }
@@ -629,7 +635,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             LatLng latLng = new LatLng(sites.get(0).getPosition().latitude, sites.get(0).getPosition().longitude);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
         }
 
 
@@ -724,7 +730,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-
+        // login code
         if (requestCode == LOGIN_CODE) {
 
             if (resultCode == RESULT_OK) {
@@ -743,6 +749,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, currentUser.toString());
                 Log.d(TAG, "onActivityResult: isSuperUser: " + currentUser.getIsSuperUser());
                 isSuperUser = currentUser.getIsSuperUser();
+
+                // display the result alert dialog
+                final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
+                        // validate the result of adding the item to the database
+                        .setTitle("Success")
+                        .setIcon(R.drawable.thumb_up)
+                        .setMessage("You have logged in successfully.")
+                        .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                        .create();
+
+
+                dialog1.show();
             }
         }
 
@@ -883,12 +901,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // init current site
         currentSite = findCurrentSite(marker);
 
-        Log.d(TAG, "showDialogDetailsRegister: currentSite- get userlist: " + currentSite.getUserList().size());
-
+        // init dialog
         Dialog registerDetailsDialog = new Dialog(MapsActivity.this);
         registerDetailsDialog.setContentView(R.layout.register_see_details_layout);
 
-//        registerDetailsDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
 
         registerDetailsDialog.show();
 
@@ -898,8 +914,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
 
+                // routing
                 resetSelectedMarker();
-                //FIXME: testing the code below
                 mSelectedMarker = marker;
                 registerDetailsDialog.dismiss();
                 marker.hideInfoWindow();
@@ -915,13 +931,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
 
                 if (!isLoggedIn) {
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("You cannot see the details of any site!")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
 
-                    dialog1.show();
+                    showNegativeDialog("Error","You cannot see the details of any site!",v);
                     return;
                 }
 
@@ -945,14 +956,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return;
                 } else {
 
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("You are not the founder of this site!")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
-
                     registerDetailsDialog.dismiss();
-                    dialog1.show();
+                    showNegativeDialog("Error","You are not the founder of this site!",v);
                     return;
 
                 }
@@ -977,26 +982,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
 
                 if (!isLoggedIn) {
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("You cannot register any site unless you login!")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
 
-                    dialog1.show();
+
+                    registerDetailsDialog.dismiss();
+                    showNegativeDialog("Error","You cannot register any site unless you login!",v);
                     return;
                 }
 
                 // validate the super user cannot register a site
                 if (isSuperUser) {
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("You cannot register any site because you are a super user.")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
 
+                    // show dialog
                     registerDetailsDialog.dismiss();
-                    dialog1.show();
+                    showNegativeDialog("Error","You cannot register any site because you are a super user.",v);
                     return;
                 }
 
@@ -1053,17 +1051,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .updateChildren(currentSite.toMap()).addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        // display the result alert dialog
-                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                                // validate the result of adding the item to the database
-                                .setTitle("Success")
-                                .setIcon(R.drawable.thumb_up)
-                                .setMessage("The site is successfully updated")
-                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                                .create();
+                        // show the dialog
                         detailsDialog.dismiss();
-
-                        dialog1.show();
+                        showPositiveDialog("Success","The site is successfully updated", v);
                         Log.d(TAG, "Successfully loaded the db after modify");
                     }
                 });
@@ -1118,46 +1108,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 try {
                     // validate the size to 0
-                    if (currentSite.getUsers().size() == 0){
+                    if (currentSite.getUsers().size() == 0) {
 
                     }
-                }catch (Exception e){
-                    // display the result alert dialog
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            // validate the result of adding the item to the database
-                            .setTitle("Announcement")
-                            .setIcon(R.drawable.ic_warning)
-                            .setMessage("There is no volunteer yet to download")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
-                    listDialog.dismiss();
+                } catch (Exception e) {
 
-                    dialog1.show();
+                    // display the alert
+                    listDialog.dismiss();
+                    showNegativeDialog("Announcement","There is no volunteer yet to download" ,v);
                     return;
                 }
 
 //                File path = MapsActivity.this.getFilesDir();
-//
-//
-//
-//
+
 //                File file = new File(path, currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt");
 
-
-
                 try {
-                    FileOutputStream fOut = openFileOutput(currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt",
+                    FileOutputStream fOut = openFileOutput(currentSite.getUsername() + "-" + currentSite.getTitle() + ".txt",
                             MODE_PRIVATE);
                     ObjectOutputStream osw = new ObjectOutputStream(fOut);
 //                    FileOutputStream stream = new FileOutputStream(file);
                     // write title first
-                    String titleString = "Site: " +currentSite.getTitle() + "\n";
+                    String titleString = "Site: " + currentSite.getTitle() + "\n";
 //                    stream.write(titleString.getBytes());
                     osw.write(titleString.getBytes());
 
                     //volunteer lists:
-                    for (User u: currentSite.getUsers()
-                         ) {
+                    for (User u : currentSite.getUsers()
+                    ) {
 
                         String userString = "Username: " + u.getName() + " , mail: " + u.getEmail() + "\n";
 //                        stream.write(userString.getBytes());
@@ -1170,19 +1148,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     osw.close();
 //                    stream.close();
 
-                    // display the result alert dialog
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            // validate the result of adding the item to the database
-                            .setTitle("Success")
-                            .setIcon(R.drawable.thumb_up)
-                            .setMessage("The user list is successfully downloaded")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
+
                     listDialog.dismiss();
+                    showPositiveDialog("Success", "The user list is successfully downloaded", v);
 
-                    dialog1.show();
-
-                } catch (Exception e){
+                } catch (Exception e) {
                     Log.d("Download", "Cannot read to the file");
                 }
 
@@ -1220,8 +1190,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         siteDescription.setText(currentSite.getDescription());
         ownerSite.setText(currentSite.getUsername());
 
-        Log.d(TAG, "setTextToComponentInDetailsDialog: currentSite.getUserStringLists().size() = " + currentSite.getUserList().size());
-        numberPeopleSite.setText(currentSite.getUserList().size() + " ");
+        Log.d(TAG, "setTextToComponentInDetailsDialog: currentSite.getUserStringLists().size() = " + currentSite.getUsers().size());
+        numberPeopleSite.setText(currentSite.getUsers().size() + " ");
         numberPeopleTested.setText(currentSite.getNumberPeopleTested() + "");
 
     }
@@ -1334,33 +1304,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 // validate username
                 if (!ifUsernameExists) {
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("The username is not found in the database!")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
-
                     registerSiteDialog.dismiss();
-                    dialog1.show();
+                    showNegativeDialog("Error","The username is not found in the database!", v);
+
                     return;
                 }
 
                 // validate if the user already registered for this site
                 Site site = findCurrentSite(marker);
 
-                Log.d(TAG, site.getUserList() + " site longitude after loop");
+                Log.d(TAG, site.getUsers() + " site longitude after loop");
 
 
                 // validate the leader cannot join his site
                 if (site.getUsername().equals(usernameTxt.getText().toString())) {
-                    final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                            .setTitle("Error")
-                            .setMessage("The username is already the leader of this site!")
-                            .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                            .create();
 
                     registerSiteDialog.dismiss();
-                    dialog1.show();
+                    showNegativeDialog("Error","The username is already the leader of this site!", v);
                     return;
                 }
 
@@ -1369,10 +1329,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 //check if the site has that user
                 try {
-                    for (String username : site.getUserList()) {
-                        Log.d(TAG, username + " username in loop");
+                    for (User u : site.getUsers()) {
+                        Log.d(TAG, u.getName() + " username in loop");
 
-                        if (username.equals(usernameTxt.getText().toString())) {
+                        if (u.getName().equals(usernameTxt.getText().toString())) {
                             isUserExistsInSite = true;
                             break;
                         }
@@ -1382,15 +1342,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // validate if user is in that site
                     if (isUserExistsInSite) {
-
-                        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                                .setTitle("Error")
-                                .setMessage("The username already registered!")
-                                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                                .create();
-
                         registerSiteDialog.dismiss();
-                        dialog1.show();
+                        showNegativeDialog("Error","The username already registered!", v);
                         return;
                     }
 
@@ -1399,41 +1352,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
 
-                ArrayList<String> usernameList = site.getUserList();
+//                ArrayList<String> usernameList = site.getUserList();
                 List<User> userList1 = site.getUsers();
 
                 // update the site
                 //validate the username list in site
                 try {
-                    usernameList.add(usernameTxt.getText().toString());
+//                    usernameList.add(usernameTxt.getText().toString());
                     userList1.add(user);
                 } catch (Exception e) {
-                    usernameList = new ArrayList<>();
-                    usernameList.add(usernameTxt.getText().toString());
+//                    usernameList = new ArrayList<>();
+//                    usernameList.add(usernameTxt.getText().toString());
 
                     userList1 = new ArrayList<>();
                     userList1.add(user);
                 }
 
-                site.setUserList(usernameList);
+//                site.setUserList(usernameList);
 
                 site.setUsers(userList1);
                 isZoomedIn = false;
                 //TODO: Add the site to the db
                 databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
 
-
-                // display the result alert dialog
-                final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                        // validate the result of adding the item to the database
-                        .setTitle("Success")
-                        .setIcon(R.drawable.thumb_up)
-                        .setMessage("The user is successfully registered this site")
-                        .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                        .create();
                 registerSiteDialog.dismiss();
-
-                dialog1.show();
+                showPositiveDialog("Success","The user is successfully registered this site",v);
             }
         });
     }
@@ -1501,26 +1444,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btn_yes.setOnClickListener(v -> {
             // validate if the site name is null
             if (siteNameTxt.getText().toString().equals("")) {
-                final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                        .setTitle("Error")
-                        .setMessage("The site title is null! Cannot create the site")
-                        .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                        .create();
 
                 createSiteDialog.dismiss();
-                dialog1.show();
+
+                showNegativeDialog("Error","The site title is null! Cannot create the site" , v);
+
                 return;
             }
 
             // Create the Site object
             Site site = new Site();
-            //TODO: setusername = currentUser.getName by default, set to constant for testing purpose
             site.setUsername(currentUser.getName());
             site.setLatitude(latLng.latitude);
             site.setLongitude(latLng.longitude);
             site.setName(siteNameTxt.getText().toString());
             site.setDescription(descriptionTxt.getText().toString());
 
+            isZoomedIn = false;
             // If not null, then add it to the db
             databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
 //            firebaseHelper.addSite(site);
@@ -1531,20 +1471,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // set the leader to has his own site
             isLeader = true;
 
-
-            // display another alert dialog
-            final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
-                    // validate the result of adding the item to the database
-                    .setTitle("Success")
-                    .setIcon(R.drawable.thumb_up)
-                    .setMessage("The site is successfully created")
-                    .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
-                    .create();
             createSiteDialog.dismiss();
 
-            dialog1.show();
+            showPositiveDialog("Success","The site is successfully created" , v);
         });
 
+    }
+
+    public void showPositiveDialog(String title, String message, View v){
+        // display another alert dialog
+        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                // validate the result of adding the item to the database
+                .setTitle(title)
+                .setIcon(R.drawable.thumb_up)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                .create();
+
+        dialog1.show();
+    }
+
+    public void showNegativeDialog(String title, String message, View v){
+        final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
+                .setTitle(title)
+                .setIcon(R.drawable.ic_warning)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null) //Set to null. We override the onclick
+                .create();
+
+        dialog1.show();
     }
 
     @Override
@@ -1611,6 +1566,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         );
     }
 
+    // on polyline click
     @Override
     public void onPolylineClick(@NonNull Polyline polyline) {
 
@@ -1631,10 +1587,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Drawable drawable = getResources().getDrawable(R.drawable.my_end_location);
 
                 Marker marker = mMap.addMarker(new MarkerOptions()
-                                .position(endLocation)
-                                .title("Trip: #" + index)
-                                .icon(getMarkerIconFromDrawable(drawable))
-                                .snippet("Duration: " + polylineData.getLeg().duration)
+                        .position(endLocation)
+                        .title("Trip: #" + index)
+                        .icon(getMarkerIconFromDrawable(drawable))
+                        .snippet("Duration: " + polylineData.getLeg().duration)
 
                 );
 
