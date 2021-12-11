@@ -360,6 +360,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     firebaseAuth.signOut();
                     isLoggedIn = false;
+                    currentSite = null;
                     signInOutBtn.setImageResource(R.drawable.login_image);
 
                     // announce the result
@@ -507,6 +508,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         }
                     } catch (Exception e) {
+                        currentSite = null;
+                        oldSite = null;
                     }
 
                 }
@@ -731,6 +734,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
+
+                currentSite = null;
+                oldSite = null;
 
                 // get the intent from login
                 currentUser = (User) data.getParcelableExtra("user");
@@ -1195,7 +1201,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         backBtn = detailsDialog.findViewById(R.id.backToMapsBtn);
         listBtn = detailsDialog.findViewById(R.id.showListBtn);
         editBtn = detailsDialog.findViewById(R.id.editSiteBtn);
-
         siteTitle = detailsDialog.findViewById(R.id.siteTitle);
         ownerSite = detailsDialog.findViewById(R.id.ownerSite);
         siteLatitude = detailsDialog.findViewById(R.id.siteLatitude);
@@ -1341,8 +1346,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // validate if the user already registered for this site
-
-
                 Site site = findCurrentSite(marker);
 
                 Log.d(TAG, site.getUserList() + " site longitude after loop");
@@ -1415,6 +1418,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 site.setUserList(usernameList);
 
                 site.setUsers(userList1);
+                isZoomedIn = false;
                 //TODO: Add the site to the db
                 databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
 

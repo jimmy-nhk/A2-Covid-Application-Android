@@ -25,11 +25,16 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -59,7 +64,7 @@ public class RegisterActivity extends AppCompatActivity {
         //Init necessary components
         attachComponents();
         initService();
-
+        loadUserData();
 
         signUpBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -93,6 +98,42 @@ public class RegisterActivity extends AppCompatActivity {
 
     }
 
+    public void loadUserData(){
+
+        // load users
+        databaseReference.child("users").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+
+
+                GenericTypeIndicator<HashMap<String, User>> genericTypeIndicator = new GenericTypeIndicator<HashMap<String, User>>() {
+                };
+
+                HashMap<String, User> users = snapshot.getValue(genericTypeIndicator);
+
+
+                try {
+                    for (User u : users.values()) {
+//                        Log.d(TAG, "Value is: " + u.getEmail());
+                        userList.add(u);
+                    }
+
+
+                } catch (Exception e) {
+                    Log.d(TAG, "Cannot load the users");
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
     public void addUserToAuthentication(String mail, String password){
 
         mAuth.createUserWithEmailAndPassword(mail, password)
@@ -119,7 +160,7 @@ public class RegisterActivity extends AppCompatActivity {
                         } else {
 
                             errorTxt.setVisibility(View.VISIBLE);
-                            errorTxt.setText("The account cannot be added. Please check the format of the gmail.");
+                            errorTxt.setText("The gmail format is incorrect.");
 
                             Log.w(TAG,"createUserWithEmail:failure", task.getException());
                             Toast.makeText(RegisterActivity.this, "Create account fail", Toast.LENGTH_SHORT).show();

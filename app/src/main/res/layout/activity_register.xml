@@ -65,13 +65,6 @@
             android:inputType="textPassword"
             android:hint="Confirm Password" />
 
-        <CheckBox
-            android:layout_width="276dp"
-            android:layout_height="76dp"
-            android:id="@+id/isSuperUser"
-            android:textStyle="bold"
-            android:text="Super User"/>
-
         <TextView
             android:id="@+id/errorTxt"
             android:layout_width="276dp"
