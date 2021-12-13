@@ -15,73 +15,109 @@
 
 
 
-            <ImageButton
-                android:id="@+id/signInOutBtn"
-                android:layout_width="150px"
-                android:layout_height="150px"
-                android:layout_marginTop="20px"
-                android:layout_marginLeft="900px"
-                android:src="@drawable/login_image"
-                android:backgroundTint="@color/blue_phantom"
-                android:textColor="@color/white"
-                android:textStyle="bold" />
+        <ImageButton
+            android:id="@+id/signInOutBtn"
+            android:layout_width="150px"
+            android:layout_height="150px"
+            android:layout_marginTop="20px"
+            android:layout_marginLeft="900px"
+            android:src="@drawable/login_image"
+            android:backgroundTint="@color/blue_phantom"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
 
-            <ImageButton
-                android:id="@+id/refreshBtn"
-                android:layout_width="wrap_content"
-                android:layout_marginLeft="935px"
-                android:layout_marginTop="1290px"
-                android:layout_height="wrap_content"
-                android:src="@drawable/refresh_img"
-                android:backgroundTint="@color/blue_phantom"
-                android:textColor="@color/white"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/currentPositionBtn"
-                android:layout_width="wrap_content"
-                android:layout_marginLeft="935px"
-                android:layout_marginTop="1380px"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_baseline_my_location_24"
-                android:backgroundTint="@color/blue_phantom"
-                android:textColor="@color/white"
-                android:textStyle="bold" />
+        <ImageButton
+            android:id="@+id/addSiteBtn"
+            android:layout_width="wrap_content"
+            android:layout_marginLeft="935px"
+            android:layout_marginTop="1190px"
+            android:layout_height="wrap_content"
+            android:src="@drawable/add_site"
+            android:backgroundTint="@color/blue_phantom"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
 
 
-        <RelativeLayout
-            android:id="@+id/relLayout1"
+        <ImageButton
+            android:id="@+id/refreshBtn"
+            android:layout_width="wrap_content"
+            android:layout_marginLeft="935px"
+            android:layout_marginTop="1290px"
+            android:layout_height="wrap_content"
+            android:src="@drawable/refresh_img"
+            android:backgroundTint="@color/blue_phantom"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/currentPositionBtn"
+            android:layout_width="wrap_content"
+            android:layout_marginLeft="935px"
+            android:layout_marginTop="1380px"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_baseline_my_location_24"
+            android:backgroundTint="@color/blue_phantom"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginTop="10dp"
             android:layout_marginRight="80dp"
-            android:background="@drawable/white_border"
-            android:elevation="10dp">
+            android:orientation="horizontal">
 
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Search Places"
+                android:backgroundTint="@color/blue_phantom"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:onClick="searchPlace"
+                android:layout_weight="4"
+                />
 
-            <ImageView
-                android:id="@+id/ic_magnify"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
-                android:layout_centerVertical="true"
-                android:layout_marginLeft="10dp"
-                android:src="@drawable/ic_magnify" />
-
-            <EditText
-                android:id="@+id/input_search"
+            <RelativeLayout
+                android:id="@+id/relLayout1"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_centerVertical="true"
-                android:layout_toRightOf="@+id/ic_magnify"
-                android:background="@null"
-                android:hint="Enter Marker Title, Description or Leader's name"
-                android:imeOptions="actionSearch"
-                android:textColor="#000"
-                android:textSize="15sp" />
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="5"
+                android:background="@drawable/white_border"
+                android:elevation="10dp">
 
 
-        </RelativeLayout>
+                <ImageView
+                    android:id="@+id/ic_magnify"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_magnify" />
+
+                <EditText
+                    android:id="@+id/input_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_centerVertical="true"
+                    android:layout_toRightOf="@+id/ic_magnify"
+                    android:background="@null"
+                    android:hint="Search site "
+                    android:imeOptions="actionSearch"
+                    android:textColor="#000"
+                    android:textSize="15sp" />
+
+
+
+            </RelativeLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"/>
+        </LinearLayout>
+
 
 
     </fragment>

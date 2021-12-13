@@ -1,3 +1,4 @@
+
 package com.example.a2.activity;
 
 import androidx.annotation.NonNull;
@@ -47,6 +48,7 @@ import com.example.a2.helper.SiteRenderer;
 import com.example.a2.model.PolylineData;
 import com.example.a2.model.Site;
 import com.example.a2.model.User;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -65,6 +67,11 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -87,6 +94,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -123,6 +131,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean isLeader;
     private boolean isSuperUser;
     private boolean isZoomedIn;
+    private boolean isPossibleToAdd;
     private Dialog createSiteDialog;
     private Dialog registerSiteDialog;
 
@@ -146,7 +155,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private EditText numberPeopleTested, siteDescription;
 
-    private ImageButton signInOutBtn, currentPositionBtn;
+    private ImageButton signInOutBtn, currentPositionBtn , addSiteBtn;
     private EditText mSearchText;
 
     @Override
@@ -157,6 +166,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
 
         initServices();
+
 
         //get location permission for the map
         getLocationPermission();
@@ -191,9 +201,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mMap != null) {
             mMap.clear();
 
-//            if(mClusterManager != null){
-//                mClusterManager.clearItems();
-//            }
+            if(clusterManager != null){
+                clusterManager.clearItems();
+            }
 
 //            if (mClusterMarkers.size() > 0) {
 //                mClusterMarkers.clear();
@@ -392,6 +402,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View v) {
                 isZoomedIn = true;
                 getDeviceLocation();
+            }
+        });
+
+        addSiteBtn = findViewById(R.id.addSiteBtn);
+
+        addSiteBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                isPossibleToAdd = !isPossibleToAdd;
+
+                showPositiveDialog("Announce", isPossibleToAdd ? "You are allowed to create new" +
+                        "site" : "You are not allowed to create new site", v );
             }
         });
 
@@ -676,7 +699,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         try {
 
-                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 17, "My Location");
+                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 17, "My Location", true);
 
                         } catch (Exception e) {
                             Log.d(TAG, "onComplete: cannot move the map");
@@ -695,46 +718,81 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void moveCamera(LatLng latLng, float zoom, String title) {
-//        Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
-//                latLng.longitude);
+    private void moveCamera(LatLng latLng, float zoom, String title, boolean isMyLocation) {
 
-        Drawable drawable = getResources().getDrawable(R.drawable.my_location);
+
+        Drawable drawable =  getResources().getDrawable(isMyLocation ? R.drawable.my_location : R.drawable.ic_android) ;
 
         MarkerOptions options = new MarkerOptions()
                 .position(latLng)
                 .icon(getMarkerIconFromDrawable(drawable))
                 .title(title);
 
-        Marker marker = mMap.addMarker(options);
+        Marker marker = mMap.addMarker(new MarkerOptions()
+                .position(latLng)
+                .visible(true)
+                .icon(getMarkerIconFromDrawable(drawable))
+                .title(title));
+
         marker.showInfoWindow();
+
+
 
         // validate if zoom is needed
         if (isZoomedIn) {
+
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
 
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
+            Log.d(TAG, "moveCamera: moving the camera to lat: " + latLng.latitude + ", lgn: " +
+                    latLng.longitude + " , " + marker.isVisible());
         }
 
     }
 
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        readDataFromDb(true);
-
-
-    }
-
-    @Override
-    protected void onResumeFragments() {
-        super.onResumeFragments();
-        readDataFromDb(true);
-    }
+//    @Override
+//    protected void onRestart() {
+//        super.onRestart();
+//        readDataFromDb(true);
+//
+//
+//    }
+//
+//    @Override
+//    protected void onResumeFragments() {
+//        super.onResumeFragments();
+//        readDataFromDb(true);
+//    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        // validate search places
+        if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+
+                readDataFromDb(false);
+
+                Place place = Autocomplete.getPlaceFromIntent(data);
+
+                Log.i(TAG, "Place: " + place.getName() + ", " + place.getLatLng().latitude + ", "
+                + place.getLatLng().longitude);
+
+
+                isZoomedIn = true;
+                moveCamera(place.getLatLng(), 16, place.getName(), false);
+
+                return;
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+                // TODO: Handle the error.
+                Status status = Autocomplete.getStatusFromIntent(data);
+                Log.i(TAG, status.getStatusMessage());
+            } else if (resultCode == RESULT_CANCELED) {
+                // The user canceled the operation.
+            }
+            return;
+        }
 
         // login code
         if (requestCode == LOGIN_CODE) {
@@ -749,6 +807,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 currentSite = null;
                 oldSite = null;
+                isPossibleToAdd = false;
+
 
                 // get the intent from login
                 currentUser = (User) data.getParcelableExtra("user");
@@ -772,8 +832,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    private String PLACES_API_KEY = "AIzaSyD5Ae6wDkIace5YhId7iUSZkFbIyvB01E0";
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
+        Places.initialize(getApplicationContext(), PLACES_API_KEY);
 
         mMap = googleMap;
         mMap.setOnPolylineClickListener(this);
@@ -782,10 +846,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // set up cluster
         setUpClusters();
 
-
-
-
-        //TODO: get current location does not work
         isZoomedIn = true;
         getDeviceLocation();
         mMap.getUiSettings().setZoomControlsEnabled(true);
@@ -812,8 +872,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return;
                 }
 
-                // validate if the current user is a leader
-                if (isLeader) {
+                // validate if the current user is possible to add
+                if (!isPossibleToAdd) {
                     return;
                 }
 
@@ -825,38 +885,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // search field
         init();
 
-//        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-//            @Override
-//            public boolean onMarkerClick(@NonNull Marker marker) {
-//                //FIXME: Testing purpose
-//                calculateDirections(marker);
-//                return false;
-//            }
-//        });
+
         customInfoWindowAdaptor = new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
-//        // set custom marker window info
-//        mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
-//
-//
-//        mMap.setOnInfoWindowClickListener(marker -> {
-//
-//            if (marker.getTitle().equals("My Location")) {
-//                return;
-//            }
-//            //TODO: Remember to turn this code below on again
-//            showDialogDetailsRegister(marker);
-//
-//        });
 
 
     }
 
     public void setUpClusters() {
 
-
         clusterManager = new ClusterManager<Site>(this, mMap);
-
 
         mMap.setOnCameraIdleListener(clusterManager);
         mMap.setOnMarkerClickListener(clusterManager);
@@ -867,7 +905,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         siteRender = new SiteRenderer(this, mMap, clusterManager);
         clusterManager.setRenderer(siteRender);
-        clusterManager.setOnClusterItemClickListener(this);
 
 
         // set on click for window info
@@ -1655,5 +1692,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineData.getPolyline().setZIndex(0);
             }
         }
+    }
+    private static int AUTOCOMPLETE_REQUEST_CODE = 1;
+
+    public void searchPlace(View view) {
+
+
+        Log.i("OnBackButtonClicked", "Success");
+
+        // Set the fields to specify which types of currentPlace data to
+        // return after the user has made a selection.
+        List<Place.Field> fields = Arrays.asList(Place.Field.ADDRESS, Place.Field.NAME, Place.Field.LAT_LNG);
+
+        // Start the autocomplete intent.
+        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                .build(this);
+        startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+
     }
 }

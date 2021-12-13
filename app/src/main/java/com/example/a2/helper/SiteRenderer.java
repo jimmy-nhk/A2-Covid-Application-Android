@@ -56,6 +56,10 @@ public class SiteRenderer extends DefaultClusterRenderer<Site> {
         return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 
+    @Override
+    protected boolean shouldRenderAsCluster(Cluster<Site> cluster) {
+        return cluster.getSize() > 1;
+    }
 
 
 
@@ -115,7 +119,7 @@ public class SiteRenderer extends DefaultClusterRenderer<Site> {
 //    protected void onBeforeClusterRendered(Cluster<Site> siteCluster, MarkerOptions markerOptions) {
 //
 //
-//        //TODO: Check again here
+//
 //        final Drawable clusterIcon = context.getResources().getDrawable(R.drawable.ic_android);
 //        clusterIcon.setColorFilter(getColor(siteCluster.getSize()), PorterDuff.Mode.MULTIPLY);
 //
@@ -135,10 +139,7 @@ public class SiteRenderer extends DefaultClusterRenderer<Site> {
 //
 //
 //
-//    @Override
-//    protected boolean shouldRenderAsCluster(Cluster<Site> cluster) {
-//        return cluster.getSize() > 1;
-//    }
+
 //
 //    public void setUpdateMarker (Site oldItem, Site newItem) {
 //        Marker marker = getMarker(oldItem);
