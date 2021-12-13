@@ -42,7 +42,6 @@ public class RegisterActivity extends AppCompatActivity {
 
     private EditText emailText, usernameText, passwordText, confirmPasswordText;
     private Button signUpBtn;
-    private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference databaseReference;
@@ -227,7 +226,6 @@ public class RegisterActivity extends AppCompatActivity {
 
     public void initService(){
         // Init firestone
-        db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
 
         // init realtime db

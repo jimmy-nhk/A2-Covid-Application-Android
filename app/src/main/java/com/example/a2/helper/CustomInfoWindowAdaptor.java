@@ -20,6 +20,7 @@ import com.example.a2.model.User;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+import com.google.maps.android.clustering.Cluster;
 
 import org.w3c.dom.Text;
 
@@ -46,6 +47,7 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
         this.marker = marker;
     }
 
+    //TODO: Re construct the constructor
     public CustomInfoWindowAdaptor(Context mContext, boolean isCurrentUserAOwner , User currentUser , List<Site> siteList) {
         this.mContext = mContext;
         this.isCurrentUserAOwner = isCurrentUserAOwner;
@@ -59,21 +61,27 @@ public class CustomInfoWindowAdaptor implements GoogleMap.InfoWindowAdapter {
 
 
         String title = marker.getTitle();
+//        String title = site.getTitle();
         TextView titleText = view.findViewById(R.id.titleText);
         titleText.setText(title);
 
         TextView registerMessage =  view.findViewById(R.id.registerMessage);
         TextView description = view.findViewById(R.id.description);
 
-        if (title.equals("My Location")){
-            description.setText("My Location");
-            titleText.setText("");
-            registerMessage.setText("");
-            description.setGravity(Gravity.CENTER_HORIZONTAL);
-            description.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+        try {
+            if (title.equals("My Location")){
+                description.setText("My Location");
+                titleText.setText("");
+                registerMessage.setText("");
+                description.setGravity(Gravity.CENTER_HORIZONTAL);
+                description.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
 
-            return;
+                return;
+            }
+        }catch (Exception e){
+            title = "Test";
         }
+
 
         description.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
         description.setGravity(Gravity.LEFT);

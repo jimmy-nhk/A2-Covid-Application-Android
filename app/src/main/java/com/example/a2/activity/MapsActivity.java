@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Notification;
@@ -21,6 +22,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.location.Address;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,6 +31,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -81,6 +84,7 @@ import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -460,14 +464,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // init the siteList again
                     siteList = new ArrayList<>();
-
+                    clusterManager.clearItems();
 
                     for (Site s : sites.values()) {
 
-                        mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(s.getDescription()).title(s.getName()).position(new LatLng(s.getLatitude(), s.getLongitude())));
+//                        mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(s.getDescription()).title(s.getName()).position(new LatLng(s.getLatitude(), s.getLongitude())));
+                        clusterManager.addItem(s);
                         siteList.add(s);
 
                     }
+                    clusterManager.cluster();
                 } catch (Exception e) {
                     Log.d(TAG, "Cannot load the sites");
                 }
@@ -772,8 +778,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         mMap.setOnPolylineClickListener(this);
 
+
         // set up cluster
-//        setUpClusters();
+        setUpClusters();
+
+
 
 
         //TODO: get current location does not work
@@ -826,22 +835,86 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //        });
         customInfoWindowAdaptor = new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList);
 
-        // set custom marker window info
-        mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
-
-
-        mMap.setOnInfoWindowClickListener(marker -> {
-
-            if (marker.getTitle().equals("My Location")) {
-                return;
-            }
-            //TODO: Remember to turn this code below on again
-            showDialogDetailsRegister(marker);
-
-        });
+//        // set custom marker window info
+//        mMap.setInfoWindowAdapter(customInfoWindowAdaptor);
+//
+//
+//        mMap.setOnInfoWindowClickListener(marker -> {
+//
+//            if (marker.getTitle().equals("My Location")) {
+//                return;
+//            }
+//            //TODO: Remember to turn this code below on again
+//            showDialogDetailsRegister(marker);
+//
+//        });
 
 
     }
+
+    public void setUpClusters() {
+
+
+        clusterManager = new ClusterManager<Site>(this, mMap);
+
+
+        mMap.setOnCameraIdleListener(clusterManager);
+        mMap.setOnMarkerClickListener(clusterManager);
+
+        clusterManager.getMarkerCollection().setInfoWindowAdapter(new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList));
+
+        mMap.setInfoWindowAdapter(clusterManager.getMarkerManager());
+
+        siteRender = new SiteRenderer(this, mMap, clusterManager);
+        clusterManager.setRenderer(siteRender);
+        clusterManager.setOnClusterItemClickListener(this);
+
+
+        // set on click for window info
+        clusterManager.setOnClusterItemInfoWindowClickListener(new ClusterManager.OnClusterItemInfoWindowClickListener<Site>() {
+            @Override
+            public void onClusterItemInfoWindowClick(Site site) {
+                if (site.getTitle().equals("My Location")) {
+                    return ;
+                }
+                //TODO: Remember to turn this code below on again
+                Marker marker = mMap.addMarker(new MarkerOptions().visible(false).icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude()))
+                );
+                showDialogDetailsRegister(marker);
+                marker.remove();
+
+
+                return ;
+            }
+        });
+
+    }
+    @Override
+    public boolean onClusterClick(Cluster cluster) {
+        float zoomLevel;
+        if (mMap.getCameraPosition().zoom <14){
+            zoomLevel = 14;
+        } else{
+            zoomLevel = mMap.getCameraPosition().zoom;
+        }
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(cluster.getPosition().latitude, cluster.getPosition().longitude), zoomLevel));
+
+        return true;
+    }
+
+    @Override
+    public boolean onClusterItemClick(ClusterItem clusterItem) {
+        float zoomLevel;
+        if (mMap.getCameraPosition().zoom <14){
+            zoomLevel = 14;
+        } else{
+            zoomLevel = mMap.getCameraPosition().zoom;
+        }
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(clusterItem.getPosition().latitude, clusterItem.getPosition().longitude), zoomLevel));
+
+        return true;
+    }
+
 
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -1403,19 +1476,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return false;
     }
 
-    public void setUpClusters() {
 
-        clusterManager = new ClusterManager<>(this, mMap);
-        siteRender = new SiteRenderer(this, mMap, clusterManager);
-        clusterManager.setRenderer((ClusterRenderer<Site>) clusterManager);
-        clusterManager.setAnimation(true);
-        clusterManager.setOnClusterClickListener(this);
-        clusterManager.setOnClusterItemClickListener(this);
-
-        mMap.setOnMarkerClickListener(clusterManager);
-
-
-    }
 
     // dialog used to create the new site
     private void showDialogForCreateSite(LatLng latLng) {
@@ -1502,15 +1563,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         dialog1.show();
     }
 
-    @Override
-    public boolean onClusterClick(Cluster cluster) {
-        return false;
-    }
-
-    @Override
-    public boolean onClusterItemClick(ClusterItem item) {
-        return false;
-    }
 
 
     public void closeDialog(View view) {

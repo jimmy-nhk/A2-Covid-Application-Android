@@ -23,7 +23,6 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     public final static String LONGITUDE = "longitude";
     public final static String DESCRIPTION = "description";
     public final static String USERNAME = "username";
-//    public final static String USERLIST = "userList";
     public final static String PEOPLETESTED = "numberPeopleTested";
     public final static String USERS = "users";
 
@@ -32,7 +31,6 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     private double longitude;
     private String description;
     private String username;
-//    private ArrayList<String> userList;
     private int numberPeopleTested;
     private List<User> users;
 
@@ -67,17 +65,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         longitude = in.readDouble();
         description = in.readString();
         username = in.readString();
-//        userList = in.createStringArrayList();
 
-//        try {
-////            System.out.println(userList.size() + "  userlist size in create to parcel");
-//
-//        } catch (Exception e){
-//
-//        }
-
-        // error occurs here ???
-//        numberPeopleTested = in.readInt() == 0 ? 0: in.readInt();
         numberPeopleTested = in.readInt();
         System.out.println(numberPeopleTested + " in create to parcel");
 
@@ -89,22 +77,13 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
 
-//        dest.writeInt(id);
         dest.writeString(name);
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
         dest.writeString(description);
 
         dest.writeString(username);
-//        dest.writeStringList(userList);
 
-
-//        try {
-//            System.out.println(userList.size() + "  userlist size in write to parcel");
-//
-//        } catch (Exception e){
-//
-//        }
         dest.writeInt(numberPeopleTested);
         System.out.println(numberPeopleTested + " in write to parcel");
 
@@ -205,14 +184,7 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
     public void setUsername(String username) {
         this.username = username;
     }
-//
-//    public ArrayList<String> getUserList() {
-//        return userList;
-//    }
-//
-//    public void setUserList(ArrayList<String> userList) {
-//        this.userList = userList;
-//    }
+
 
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
