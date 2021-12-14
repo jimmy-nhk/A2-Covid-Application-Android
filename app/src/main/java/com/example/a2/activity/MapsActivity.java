@@ -25,6 +25,7 @@ import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Location;
+import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -73,6 +74,7 @@ import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -119,6 +121,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<Site> siteList;
     private ArrayList<PolylineData> mPolylineData = new ArrayList<>();
     private List<User> userList;
+//    private List<Site> currentSiteList;
+//    private List<Site> oldSiteList;
     private boolean isLoggedIn;
     private Marker mSelectedMarker = null;
     private ArrayList<Marker> mTripMarkers = new ArrayList<>();
@@ -128,12 +132,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private User currentUser;
     private Site currentSite;
+//    private Site oldSite;
     private boolean isLeader;
     private boolean isSuperUser;
     private boolean isZoomedIn;
     private boolean isPossibleToAdd;
     private Dialog createSiteDialog;
     private Dialog registerSiteDialog;
+    
 
     private Drawable drawable;
 
@@ -343,6 +349,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Init the object
         siteList = new ArrayList<>();
         userList = new ArrayList<>();
+//        currentSiteList = new ArrayList<>();
+//        oldSiteList = new ArrayList<>();
 
         // read the db
         readDataFromDb(true);
@@ -374,7 +382,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     firebaseAuth.signOut();
                     isLoggedIn = false;
+                    
+//                    currentSiteList = null;
+//                    oldSiteList = null;
                     currentSite = null;
+//                    oldSite = null;
                     signInOutBtn.setImageResource(R.drawable.login_image);
 
                     // announce the result
@@ -421,7 +433,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    private Site oldSite;
+
 
     // read data from db
     private void readDataFromDb(boolean isGetCurrentLocation) {
@@ -500,54 +512,91 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 } catch (Exception e) {
                     Log.d(TAG, "Cannot load the sites");
                 }
-
-                Site site = new Site();
-
-                // validate the leader site
-                for (Site s : siteList
-                ) {
-
-                    try {
-                        if (s.getUsername().equals(currentUser.getName())) {
-                            site = s;
-//                            Log.d(TAG, "sitesDb: size of userList: " + site.getUserList().size());
+//
+//                Site site = new Site();
+//
+//                if (oldSiteList.size() == 0) {
+//                    oldSiteList = currentSiteList;
+//                }
+//                currentSiteList = new ArrayList<>();
+//
+//                // validate the leader site
+//                for (Site s : siteList
+//                ) {
+//
+//                    try {
+//                        if (s.getUsername().equals(currentUser.getName())) {
+//                            site = s;
+////                            Log.d(TAG, "sitesDb: size of userList: " + site.getUserList().size());
+////
+////
+////                            Log.d(TAG, "sitesDb: notification on change here");
+//                            currentSiteList.add(s);
+//
+//                            // validate the old site
+////                            try {
+////                                if (site.compareTo(oldSite) == 0) {
+////                                    Log.d(TAG, "readDataFromDb: no change in the leader site");
+////                                    return;
+////                                } else {
+////                                    oldSite = site;
+////                                    Log.d(TAG, "readDataFromDb: successfully send notification");
+////
+////                                    // validate not to render notification
+////                                    if (currentSite == null || oldSite == null) {
+////                                        return;
+////                                    }
+////
+////                                    createNotification(site.getTitle(), getApplicationContext());
+////                                    return;
+////                                }
+////                            } catch (Exception e) {
+////                                oldSite = site;
+////                                Log.d(TAG, "readDataFromDb: First reload, no old site");
+////                                return;
+////                            }
 //
 //
-//                            Log.d(TAG, "sitesDb: notification on change here");
+//                        }
+//                    } catch (Exception e) {
+//                        currentSite = null;
+//                        oldSite = null;
+//                        return;
+//                    }
+//
+//                }
+//
+//                // validate the change in the db
+//                try {
+//                    Log.d(TAG, "readData: current: " + currentSiteList.get(0).getTitle());
+//                    Log.d(TAG, "readData: old: " + oldSiteList.get(0).getTitle());
+//                } catch (Exception e){
+//
+//                }
 
 
-                            // validate the old site
-                            try {
-                                if (site.compareTo(oldSite) == 0) {
-                                    Log.d(TAG, "readDataFromDb: no change in the leader site");
-                                    return;
-                                } else {
-                                    oldSite = site;
-                                    Log.d(TAG, "readDataFromDb: successfully send notification");
-
-                                    // validate not to render notification
-                                    if (currentSite == null || oldSite == null) {
-                                        return;
-                                    }
-
-                                    createNotification(site.getTitle(), getApplicationContext());
-                                    return;
-                                }
-                            } catch (Exception e) {
-                                oldSite = site;
-                                Log.d(TAG, "readDataFromDb: First reload, no old site");
-                                return;
-                            }
-
-
-                        }
-                    } catch (Exception e) {
-                        currentSite = null;
-                        oldSite = null;
-                        return;
-                    }
-
-                }
+//                for (int i = 0 ; i < currentSiteList.size(); i++){
+//
+//                    Log.d(TAG, "readData: inside the loop");
+//                    try {
+//                        if (currentSiteList.get(i).getTitle().equals(oldSiteList.get(i).getTitle())){
+//                            if (currentSiteList.get(i).compareTo(oldSiteList.get(i)) != 0){
+//
+//                                Log.d(TAG, "readData in condition: current: " + currentSiteList.get(i).getTitle());
+//                                Log.d(TAG, "readData in condition: old: " + oldSiteList.get(i).getTitle());
+//
+//                                createNotification(currentSiteList.get(i).getTitle(), getApplicationContext());
+//
+////                                oldSiteList = currentSiteList;
+////                                return;
+//                            }
+//                        }
+//
+//
+//                    }catch (Exception e){
+//
+//                    }
+//                }
 
             }
 
@@ -556,6 +605,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
+
+        ChildEventListener childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                Log.d(TAG, "onChildChanged: " + snapshot.getKey());
+
+                Site site = snapshot.getValue(Site.class);
+
+                createNotification(site.getTitle(), getApplicationContext());
+
+                Log.d(TAG, "onChildChanged: " + site.getTitle());
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+
+        databaseReference.child("sites").addChildEventListener(childEventListener);
 
     }
 
@@ -772,7 +856,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
 
-                readDataFromDb(false);
+//                readDataFromDb(false);
 
                 Place place = Autocomplete.getPlaceFromIntent(data);
 
@@ -781,7 +865,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 isZoomedIn = true;
-                moveCamera(place.getLatLng(), 16, place.getName(), false);
+                Drawable drawable =  getResources().getDrawable( R.drawable.my_location ) ;
+
+                MarkerOptions options = new MarkerOptions()
+                        .position(place.getLatLng())
+                        .icon(getMarkerIconFromDrawable(drawable))
+                        .title(place.getName());
+
+                mMap.addMarker( new MarkerOptions()
+                        .position(place.getLatLng())
+                        .visible(true)
+                        .icon(getMarkerIconFromDrawable(drawable))
+                        .title(place.getName()));
+
+
+
+
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
+                Log.d(TAG, "moveCamera: moving the camera to lat: " + place.getLatLng().latitude + ", lgn: " +
+                            place.getLatLng().longitude );
+
+//                moveCamera(place.getLatLng(), 16, place.getName(), false);
 
                 return;
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
@@ -801,12 +907,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 readDataFromDb(true);
 
-
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
 
                 currentSite = null;
-                oldSite = null;
+//                oldSite = null;
                 isPossibleToAdd = false;
 
 
@@ -816,6 +921,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, "onActivityResult: isSuperUser: " + currentUser.getIsSuperUser());
                 isSuperUser = currentUser.getIsSuperUser();
 
+                // init 2 sites arraylist
+//                currentSiteList = getAllSiteOfCurrentUser();
+//                oldSiteList = currentSiteList;
+                
                 // display the result alert dialog
                 final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
                         // validate the result of adding the item to the database
@@ -830,6 +939,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
+    }
+    
+    public List<Site> getAllSiteOfCurrentUser(){
+        List<Site> sites = new ArrayList<>();
+        
+        for (Site s : siteList){
+            if (s.getUsername().equals(currentUser.getName())){
+                sites.add(s);
+            }
+        }
+        
+        return sites;
     }
 
     private String PLACES_API_KEY = "AIzaSyD5Ae6wDkIace5YhId7iUSZkFbIyvB01E0";
@@ -1557,13 +1678,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             site.setLongitude(latLng.longitude);
             site.setName(siteNameTxt.getText().toString());
             site.setDescription(descriptionTxt.getText().toString());
+            
+//            currentSiteList.add(site);
 
             isZoomedIn = false;
             // If not null, then add it to the db
             databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
 //            firebaseHelper.addSite(site);
-
-
+            
             mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
 
             // set the leader to has his own site
