@@ -27,6 +27,7 @@ import android.location.Address;
 import android.location.Location;
 import android.nfc.Tag;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -91,11 +92,13 @@ import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.algo.GridBasedAlgorithm;
+import com.google.maps.android.clustering.algo.PreCachingAlgorithmDecorator;
 import com.google.maps.android.clustering.view.ClusterRenderer;
 import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -237,12 +240,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void resetSelectedMarker() {
-        if (mSelectedMarker != null) {
 
-            mSelectedMarker.setVisible(true);
-            mSelectedMarker = null;
+        if (mSelectedSite != null){
+
+//            clusterManager.addItem(mSelectedSite);
+            clusterManager.clearItems();
+            clusterManager.addItems(siteList);
+            mSelectedSite = null;
+            clusterManager.cluster();
+
             removeTripMarkers();
         }
+
+//        if (mSelectedMarker != null) {
+//
+//            mSelectedMarker.setVisible(true);
+//            mSelectedMarker = null;
+//            removeTripMarkers();
+//        }
     }
 
     // add polylines
@@ -293,7 +308,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
 
 
-                    mSelectedMarker.setVisible(false);
+//                    clusterManager.setAlgorithm(new PreCachingAlgorithmDecorator<Site>(new GridBasedAlgorithm<Site>()));
+
+                    clusterManager.removeItem(mSelectedSite);
+//                    mSelectedMarker.setVisible(false);
                 }
             }
         });
@@ -426,6 +444,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         addSiteBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                if (!isLoggedIn){
+                    return;
+                }
 
                 isPossibleToAdd = !isPossibleToAdd;
 
@@ -624,7 +646,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Site site = snapshot.getValue(Site.class);
 
-                createNotification(site.getTitle(), getApplicationContext());
+                if (site.getUsername().equals(currentUser.getName())){
+                    createNotification(site.getTitle(), getApplicationContext());
+                }
+
 
                 Log.d(TAG, "onChildChanged: " + site.getTitle());
             }
@@ -719,7 +744,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 String searchInput = adapterView.getItemAtPosition(i).toString();
                 LatLng location = findLocation(searchInput);
-//                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location,17));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location,17));
                 siteSearch.setText("");
             }
         });
@@ -728,7 +753,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng findLocation(String searchInput){
 
         for (Site s: siteList) {
-            if(searchInput.contains(s.getTitle() )|| searchInput.contains(s.getDescription())
+            if(searchInput.contains(s.getTitle() )
                 ){
                 LatLng latLng = s.getPosition();
                 Log.d(TAG, "findLocation: " + s.toString());
@@ -740,6 +765,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         for (Site s : siteList){
             if (searchInput.contains(s.getUsername())){
 
+                LatLng latLng = s.getPosition();
+                Log.d(TAG, "findLocation: " + s.toString());
+                Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
+                return latLng;
+            }
+        }
+
+        for (Site s: siteList) {
+            if( searchInput.contains(s.getDescription())
+            ){
                 LatLng latLng = s.getPosition();
                 Log.d(TAG, "findLocation: " + s.toString());
                 Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
@@ -929,8 +964,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
                 Log.d(TAG, "moveCamera: moving the camera to lat: " + place.getLatLng().latitude + ", lgn: " +
                             place.getLatLng().longitude );
-
-
 
                 return;
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
@@ -1169,6 +1202,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private Site mSelectedSite = null;
     //show dialog of register and show details
     public void showDialogDetailsRegister(Marker marker) {
 
@@ -1191,6 +1225,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // routing
                 resetSelectedMarker();
                 mSelectedMarker = marker;
+                mSelectedSite = currentSite;
                 registerDetailsDialog.dismiss();
                 marker.hideInfoWindow();
                 calculateDirections(marker);
@@ -1346,6 +1381,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+
+
     private void showListVolunteer() {
 
         // create dialog component
@@ -1398,6 +1435,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                File file = new File(path, currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt");
 
                 try {
+
+                    // write to external storage
+                    writeFileExternalStorage();
+
+
                     FileOutputStream fOut = openFileOutput(currentSite.getUsername() + "-" + currentSite.getTitle() + ".txt",
                             MODE_PRIVATE);
                     ObjectOutputStream osw = new ObjectOutputStream(fOut);
@@ -1436,6 +1478,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         listDialog.show();
 
+    }
+
+
+    public void writeFileExternalStorage() {
+
+
+        //Checking the availability state of the External Storage.
+        String state = Environment.getExternalStorageState();
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+
+            //If it isn't mounted - we can't write into it.
+            return;
+        }
+
+
+        String filenameExternal = currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt";
+        //Create a new file that points to the root directory, with the given name:
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+        Environment.DIRECTORY_DOWNLOADS), filenameExternal);
+
+        //This point and below is responsible for the write operation
+        FileOutputStream outputStream = null;
+        try {
+            file.createNewFile();
+
+            String titleString = "Site: " + currentSite.getTitle() + "\n";
+
+            //second argument of FileOutputStream constructor indicates whether
+            //to append or create new file if one exists
+            outputStream = new FileOutputStream(file, false);
+
+            outputStream.write(titleString.getBytes());
+
+            //volunteer lists:
+            for (User u : currentSite.getUsers()
+            ) {
+
+                String userString = "Username: " + u.getName() + " , mail: " + u.getEmail() + "\n";
+//                        stream.write(userString.getBytes());
+                outputStream.write(userString.getBytes());
+            }
+
+            outputStream.flush();
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -1662,10 +1751,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         for (Site site : siteList
         ) {
 
-            Log.d(TAG, "Here hello");
-
-            System.out.println(site.getUsername() + " site's owner name");
-            System.out.println(currentUser.getName() + " username");
             // check if the username is as same as owner's site
             if (currentUser.getName().equals(site.getUsername())) {
                 Log.d(TAG, "Equal");
