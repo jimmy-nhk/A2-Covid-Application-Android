@@ -97,17 +97,30 @@
                     android:layout_centerVertical="true"
                     android:src="@drawable/ic_magnify" />
 
-                <EditText
+                <AutoCompleteTextView
                     android:id="@+id/input_search"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_centerVertical="true"
                     android:layout_toRightOf="@+id/ic_magnify"
                     android:background="@null"
+                    android:textColor="#000"
                     android:hint="Search site "
                     android:imeOptions="actionSearch"
-                    android:textColor="#000"
                     android:textSize="15sp" />
+                "
+
+<!--                <EditText-->
+<!--                    android:id="@+id/input_search"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="50dp"-->
+<!--                    android:layout_centerVertical="true"-->
+<!--                    android:layout_toRightOf="@+id/ic_magnify"-->
+<!--                    android:background="@null"-->
+<!--                    android:hint="Search site "-->
+<!--                    android:imeOptions="actionSearch"-->
+<!--                    android:textColor="#000"-->
+<!--                    android:textSize="15sp" />-->
 
 
 

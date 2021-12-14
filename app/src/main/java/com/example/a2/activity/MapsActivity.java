@@ -35,6 +35,9 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -87,6 +90,7 @@ import com.google.maps.PendingResult;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.algo.GridBasedAlgorithm;
 import com.google.maps.android.clustering.view.ClusterRenderer;
 import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
@@ -162,7 +166,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private EditText numberPeopleTested, siteDescription;
 
     private ImageButton signInOutBtn, currentPositionBtn , addSiteBtn;
-    private EditText mSearchText;
+//    private EditText mSearchText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,7 +176,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
 
         initServices();
-
 
         //get location permission for the map
         getLocationPermission();
@@ -289,6 +292,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         zoomRoute(polyline.getPoints());
                     }
 
+
                     mSelectedMarker.setVisible(false);
                 }
             }
@@ -343,7 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         currentUser = new User();
         firebaseAuth = FirebaseAuth.getInstance();
-        mSearchText = findViewById(R.id.input_search);
+//        mSearchText = findViewById(R.id.input_search);
         drawable = getResources().getDrawable(R.drawable.site_cluster_large);
 
         // Init the object
@@ -509,6 +513,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     }
                     clusterManager.cluster();
+                    searchFunction();
+
                 } catch (Exception e) {
                     Log.d(TAG, "Cannot load the sites");
                 }
@@ -697,62 +703,110 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    private void searchFunction() {
+
+        List<String> siteString = new ArrayList<>();
+        for (Site s: siteList) {
+            siteString.add("Title: " + s.getTitle() + "\nLeader: " + s.getUsername() +"\nDescription: " + s.getDescription() + "\n");
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,siteString);
+
+        AutoCompleteTextView siteSearch = findViewById(R.id.input_search);
+        siteSearch.setAdapter(adapter);
+        siteSearch.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                String searchInput = adapterView.getItemAtPosition(i).toString();
+                LatLng location = findLocation(searchInput);
+//                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location,17));
+                siteSearch.setText("");
+            }
+        });
+    }
+
+    private LatLng findLocation(String searchInput){
+
+        for (Site s: siteList) {
+            if(searchInput.contains(s.getTitle() )|| searchInput.contains(s.getDescription())
+                ){
+                LatLng latLng = s.getPosition();
+                Log.d(TAG, "findLocation: " + s.toString());
+                Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
+                return latLng;
+            }
+        }
+
+        for (Site s : siteList){
+            if (searchInput.contains(s.getUsername())){
+
+                LatLng latLng = s.getPosition();
+                Log.d(TAG, "findLocation: " + s.toString());
+                Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
+                return latLng;
+            }
+        }
+
+
+        return null;
+    }
+
 
     private void init() {
         Log.d(TAG, "init: initializing");
 
-        mSearchText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                geoLocate();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-            }
-        });
-
-    }
-
-
-    private void geoLocate() {
-        Log.d(TAG, "geoLocate: geolocating");
-
-        String searchString = mSearchText.getText().toString();
-
-        List<Site> sites = new ArrayList<>();
-        try {
-
-            for (Site site : siteList
-            ) {
-
-                //TODO: filter on more criteria if have time
-                if (Objects.requireNonNull(site.getTitle()).contains(searchString) || site.getDescription().contains(searchString)
-                        || site.getUsername().contains(searchString)) {
-                    sites.add(site);
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "geoLocated: IOException: " + e.getMessage());
-        }
-
-        if (sites.size() > 0) {
-            Log.d(TAG, "geoLocate: found a location: " + sites.get(0).toString());
-            Toast.makeText(MapsActivity.this, sites.get(0).toString(), Toast.LENGTH_SHORT).show();
-
-            LatLng latLng = new LatLng(sites.get(0).getPosition().latitude, sites.get(0).getPosition().longitude);
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
-        }
-
+//        mSearchText.addTextChangedListener(new TextWatcher() {
+//            @Override
+//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//
+//            }
+//
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//                geoLocate();
+//            }
+//
+//            @Override
+//            public void afterTextChanged(Editable s) {
+//
+//            }
+//        });
 
     }
+
+
+//    private void geoLocate() {
+//        Log.d(TAG, "geoLocate: geolocating");
+//
+//        String searchString = mSearchText.getText().toString();
+//
+//        List<Site> sites = new ArrayList<>();
+//        try {
+//
+//            for (Site site : siteList
+//            ) {
+//
+//                //TODO: filter on more criteria if have time
+//                if (Objects.requireNonNull(site.getTitle()).contains(searchString) || site.getDescription().contains(searchString)
+//                        || site.getUsername().contains(searchString)) {
+//                    sites.add(site);
+//                }
+//            }
+//        } catch (Exception e) {
+//            Log.e(TAG, "geoLocated: IOException: " + e.getMessage());
+//        }
+//
+//        if (sites.size() > 0) {
+//            Log.d(TAG, "geoLocate: found a location: " + sites.get(0).toString());
+//            Toast.makeText(MapsActivity.this, sites.get(0).toString(), Toast.LENGTH_SHORT).show();
+//
+//            LatLng latLng = new LatLng(sites.get(0).getPosition().latitude, sites.get(0).getPosition().longitude);
+//            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+//            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
+//        }
+//
+//
+//    }
 
 
     // get the current location
@@ -834,19 +888,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-//    @Override
-//    protected void onRestart() {
-//        super.onRestart();
-//        readDataFromDb(true);
-//
-//
-//    }
-//
-//    @Override
-//    protected void onResumeFragments() {
-//        super.onResumeFragments();
-//        readDataFromDb(true);
-//    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -864,30 +906,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 + place.getLatLng().longitude);
 
 
-                isZoomedIn = true;
-                Drawable drawable =  getResources().getDrawable( R.drawable.my_location ) ;
-
-                MarkerOptions options = new MarkerOptions()
-                        .position(place.getLatLng())
-                        .icon(getMarkerIconFromDrawable(drawable))
-                        .title(place.getName());
-
-                mMap.addMarker( new MarkerOptions()
-                        .position(place.getLatLng())
-                        .visible(true)
-                        .icon(getMarkerIconFromDrawable(drawable))
-                        .title(place.getName()));
-
-
-
-
+//
+//
+//                isZoomedIn = true;
+//
+//                MarkerOptions options = new MarkerOptions()
+//                        .position(place.getLatLng())
+//                        .title(place.getName());
+//
+//
+//                Marker marker = mMap.addMarker( new MarkerOptions()
+//                        .position(place.getLatLng())
+//                        .visible(true)
+//                        .icon(getMarkerIconFromDrawable(drawable))
+//                        .title(place.getName()));
+//
+//                marker.showInfoWindow();
+//
+//
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
 
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
                 Log.d(TAG, "moveCamera: moving the camera to lat: " + place.getLatLng().latitude + ", lgn: " +
                             place.getLatLng().longitude );
 
-//                moveCamera(place.getLatLng(), 16, place.getName(), false);
+
 
                 return;
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
@@ -1036,7 +1079,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return ;
                 }
                 //TODO: Remember to turn this code below on again
-                Marker marker = mMap.addMarker(new MarkerOptions().visible(false).icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude()))
+                Marker marker = mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude()))
                 );
                 showDialogDetailsRegister(marker);
                 marker.remove();
@@ -1827,7 +1870,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         List<Place.Field> fields = Arrays.asList(Place.Field.ADDRESS, Place.Field.NAME, Place.Field.LAT_LNG);
 
         // Start the autocomplete intent.
-        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
                 .build(this);
         startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
 

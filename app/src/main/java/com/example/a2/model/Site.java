@@ -216,4 +216,17 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
 
         return 1;
     }
+
+    @Override
+    public String toString() {
+        return "Site{" +
+                "name='" + name + '\'' +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
+                ", description='" + description + '\'' +
+                ", username='" + username + '\'' +
+                ", numberPeopleTested=" + numberPeopleTested +
+                ", users=" + users +
+                '}';
+    }
 }
