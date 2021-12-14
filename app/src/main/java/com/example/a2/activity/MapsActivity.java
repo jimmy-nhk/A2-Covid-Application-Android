@@ -128,8 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<Site> siteList;
     private ArrayList<PolylineData> mPolylineData = new ArrayList<>();
     private List<User> userList;
-//    private List<Site> currentSiteList;
-//    private List<Site> oldSiteList;
+
     private boolean isLoggedIn;
     private Marker mSelectedMarker = null;
     private ArrayList<Marker> mTripMarkers = new ArrayList<>();
@@ -444,6 +443,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         addSiteBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                if (isSuperUser){
+                    return;
+                }
 
                 if (!isLoggedIn){
                     return;
