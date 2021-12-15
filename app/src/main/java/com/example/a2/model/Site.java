@@ -51,7 +51,6 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         this.longitude = longitude;
         this.description = description;
         this.username = username;
-//        this.userList = userList;
         this.numberPeopleTested = numberPeopleTested;
         this.users = users;
     }
@@ -193,7 +192,6 @@ public class Site implements ClusterItem, Parcelable, Comparable<Site> {
         result.put(LONGITUDE, longitude);
         result.put(DESCRIPTION, description);
         result.put(USERNAME, username);
-//        result.put(USERLIST, userList);
         result.put(PEOPLETESTED, numberPeopleTested);
         result.put(USERS, users);
 

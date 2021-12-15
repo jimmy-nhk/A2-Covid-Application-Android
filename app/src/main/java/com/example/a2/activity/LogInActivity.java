@@ -73,19 +73,17 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     private SignInButton signInGoogleButton;
 
-    private GoogleSignInClient mGoogleSignInClient;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_in);
 
-
+        // init services
         attachComponents();
         initService();
 
-
-
-
+        // sign in gg btn
         signInGoogleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -97,7 +95,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
 
     }
-
+    // attach components with xml
     public void attachComponents(){
         passwordText = findViewById(R.id.passwordTxt);
         emailText = findViewById(R.id.editEmailLogInTxt);
@@ -109,11 +107,12 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         textView.setText("Sign in Google to be a super user");
     }
 
+    // init services
     public void initService(){
 
         // init firebase services
         firebaseAuth = FirebaseAuth.getInstance();
-//        firebaseHelper = new FirebaseHelper(LogInActivity.this);
+
         // init realtime db
         firebaseDatabase = FirebaseDatabase.getInstance("https://a2-android-56cbb-default-rtdb.asia-southeast1.firebasedatabase.app/");
         databaseReference = firebaseDatabase.getReference();
@@ -144,13 +143,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                 // This method is called once with the initial value and again
                 // whenever data at this location is updated.
 
-                long size = snapshot.getChildrenCount();
-                Log.d(TAG, "Size is: " + size);
-
                 GenericTypeIndicator<HashMap<String, User>> genericTypeIndicator =new GenericTypeIndicator<HashMap<String, User>>(){};
 
                 HashMap<String,User> users= snapshot.getValue(genericTypeIndicator);
-
 
                 try {
                     for (User u : users.values() ){
@@ -205,6 +200,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                                 Log.d(TAG, userFirebase.getEmail() + " mail1");
 
                                 try {
+                                    // get the user from realtime db
                                     user = searchUser(userFirebase.getEmail());
                                     Log.d(TAG, user.getEmail().toString());
 
@@ -238,12 +234,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
     public User searchUser(String mail){
 
-        Log.d(TAG, userList.get(0).getEmail() + " test email");
-
-
-        Log.d(TAG, mail + " mail2");
-
-        Log.d(TAG, userList.size() + " size");
 
         // validate the user
         for (User u: userList
@@ -287,8 +277,10 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         }
     }
 
+    // firebaseAuth with GG
     private void firebaseAuthWithGoogle(AuthCredential credential){
 
+        // sign in with gg
         firebaseAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -347,8 +339,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
             if (resultCode == RESULT_OK){
 
-
-
                 Log.d(TAG, userList.size() + " size after loaded");
                 emailText.setText(data.getExtras().get("email").toString());
 
@@ -370,8 +360,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         // check if from google
         if (requestCode == GOOGLE_SUCCESSFULLY_SIGN_IN){
 
-
-
             // The Task returned from this call is always completed, no need to attach
             // a listener.
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
@@ -380,7 +368,6 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
             return;
         }
     }
-
 
 
     @Override

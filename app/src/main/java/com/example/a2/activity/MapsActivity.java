@@ -138,14 +138,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private User currentUser;
     private Site currentSite;
-//    private Site oldSite;
+
+    // init current selected site
+    private Site mSelectedSite = null;
+
+    //    private Site oldSite;
     private boolean isLeader;
     private boolean isSuperUser;
     private boolean isZoomedIn;
     private boolean isPossibleToAdd;
     private Dialog createSiteDialog;
     private Dialog registerSiteDialog;
-    
+
 
     private Drawable drawable;
 
@@ -167,7 +171,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private EditText numberPeopleTested, siteDescription;
 
-    private ImageButton signInOutBtn, currentPositionBtn , addSiteBtn;
+    private ImageButton signInOutBtn, currentPositionBtn, addSiteBtn;
 //    private EditText mSearchText;
 
     @Override
@@ -195,6 +199,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
 
+        // get intent from the notification
         try {
             Intent intent = getIntent();
             currentUser = intent.getParcelableExtra("user");
@@ -208,11 +213,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    // reset the map
     private void resetMap() {
         if (mMap != null) {
             mMap.clear();
 
-            if(clusterManager != null){
+            if (clusterManager != null) {
                 clusterManager.clearItems();
             }
 
@@ -221,11 +227,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                mClusterMarkers = new ArrayList<>();
 //            }
 
+            // remove polyline
             if (mPolylineData.size() > 0) {
                 mPolylineData.clear();
                 mPolylineData = new ArrayList<>();
             }
 
+            // read data again
             readDataFromDb(true);
         }
     }
@@ -238,9 +246,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // reset selected site
     private void resetSelectedMarker() {
 
-        if (mSelectedSite != null){
+        if (mSelectedSite != null) {
 
 //            clusterManager.addItem(mSelectedSite);
             clusterManager.clearItems();
@@ -251,12 +260,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             removeTripMarkers();
         }
 
-//        if (mSelectedMarker != null) {
-//
-//            mSelectedMarker.setVisible(true);
-//            mSelectedMarker = null;
-//            removeTripMarkers();
-//        }
     }
 
     // add polylines
@@ -279,6 +282,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 double duration = 9999999;
+                // finding the route
                 for (DirectionsRoute route : result.routes) {
 
                     List<com.google.maps.model.LatLng> decodedPath = PolylineEncoding.decode(route.overviewPolyline.getEncodedPath());
@@ -316,9 +320,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    // calculate the directions
     private void calculateDirections(Marker marker) {
         Log.d(TAG, "calculateDirections: calculating directions.");
 
+        // get the destination
         com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(
                 marker.getPosition().latitude,
                 marker.getPosition().longitude
@@ -352,6 +358,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    // init the service
     private void initServices() {
 
         // init realtime db
@@ -364,18 +371,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         currentUser = new User();
         firebaseAuth = FirebaseAuth.getInstance();
-//        mSearchText = findViewById(R.id.input_search);
         drawable = getResources().getDrawable(R.drawable.site_cluster_large);
 
         // Init the object
         siteList = new ArrayList<>();
         userList = new ArrayList<>();
-//        currentSiteList = new ArrayList<>();
-//        oldSiteList = new ArrayList<>();
+
 
         // read the db
         readDataFromDb(true);
 
+        // reset button
         ImageButton imageButton = findViewById(R.id.refreshBtn);
         imageButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -384,6 +390,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // set sign in out btn
         signInOutBtn = findViewById(R.id.signInOutBtn);
 
         if (isLoggedIn) {
@@ -403,14 +410,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     firebaseAuth.signOut();
                     isLoggedIn = false;
-                    
-//                    currentSiteList = null;
-//                    oldSiteList = null;
                     currentSite = null;
-//                    oldSite = null;
                     signInOutBtn.setImageResource(R.drawable.login_image);
 
-                    // announce the result
+                    // announce the log out message
                     final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
                             .setTitle("Announcement")
                             .setIcon(R.drawable.thumb_up)
@@ -423,11 +426,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 }
 
+                // log in intent
                 Intent intent = new Intent(MapsActivity.this, LogInActivity.class);
                 startActivityForResult(intent, LOGIN_CODE);
             }
         });
 
+        // current position btn
         currentPositionBtn = findViewById(R.id.currentPositionBtn);
 
         currentPositionBtn.setOnClickListener(new View.OnClickListener() {
@@ -438,30 +443,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // add site btn is on
         addSiteBtn = findViewById(R.id.addSiteBtn);
 
         addSiteBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                if (isSuperUser){
+                if (isSuperUser) {
                     return;
                 }
 
-                if (!isLoggedIn){
+                if (!isLoggedIn) {
                     return;
                 }
 
                 isPossibleToAdd = !isPossibleToAdd;
 
                 showPositiveDialog("Announce", isPossibleToAdd ? "You are allowed to create new" +
-                        "site" : "You are not allowed to create new site", v );
+                        "site" : "You are not allowed to create new site", v);
             }
         });
 
     }
-
-
 
 
     // read data from db
@@ -564,7 +568,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Site site = snapshot.getValue(Site.class);
 
-                if (site.getUsername().equals(currentUser.getName())){
+                if (site.getUsername().equals(currentUser.getName())) {
                     createNotification(site.getTitle(), getApplicationContext());
                 }
 
@@ -594,6 +598,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private NotificationManager notifManager;
 
+    // create notification
     public void createNotification(String aMessage, Context context) {
         final int NOTIFY_ID = 0; // ID of notification
         String id = context.getString(R.string.app_name); // default_channel_id
@@ -650,11 +655,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void searchFunction() {
 
         List<String> siteString = new ArrayList<>();
-        for (Site s: siteList) {
-            siteString.add("Title: " + s.getTitle() + "\nLeader: " + s.getUsername() +"\nDescription: " + s.getDescription() + "\n");
+        for (Site s : siteList) {
+            siteString.add("Title: " + s.getTitle() + "\nLeader: " + s.getUsername() + "\nDescription: " + s.getDescription() + "\n");
         }
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,siteString);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, siteString);
 
         AutoCompleteTextView siteSearch = findViewById(R.id.input_search);
         siteSearch.setAdapter(adapter);
@@ -663,28 +668,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 String searchInput = adapterView.getItemAtPosition(i).toString();
                 Log.d(TAG, "searchInput: " + i + " th");
-                LatLng location = findLatLng(searchInput , i);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location,17));
+                LatLng location = findLatLng(searchInput, i);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 17));
                 siteSearch.setText("");
             }
         });
     }
 
     // find the latlng based on the given input
-    private LatLng findLatLng(String searchInput, int iTh){
+    private LatLng findLatLng(String searchInput, int iTh) {
 
         int i = 0;
 
-        for (Site s: siteList) {
+        // loop through the list
+        for (Site s : siteList) {
 
-            if(searchInput.contains(s.getTitle() ) || searchInput.contains(s.getUsername())
-                || searchInput.contains(s.getDescription()) ){
+            if (searchInput.contains(s.getTitle()) || searchInput.contains(s.getUsername())
+                    || searchInput.contains(s.getDescription())) {
 
-                if (i != iTh){
+                if (i != iTh) {
                     i++;
                     continue;
                 }
-
+                // get the latLng
                 LatLng latLng = s.getPosition();
                 Log.d(TAG, "findLocation: " + s.toString());
                 Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
@@ -694,7 +700,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return null;
     }
-
 
 
     // get the current location
@@ -744,15 +749,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // move the camera
     private void moveCamera(LatLng latLng, float zoom, String title, boolean isMyLocation) {
 
 
-        Drawable drawable =  getResources().getDrawable(isMyLocation ? R.drawable.my_location : R.drawable.ic_android) ;
+        Drawable drawable = getResources().getDrawable(isMyLocation ? R.drawable.my_location : R.drawable.ic_android);
 
-        MarkerOptions options = new MarkerOptions()
-                .position(latLng)
-                .icon(getMarkerIconFromDrawable(drawable))
-                .title(title);
 
         Marker marker = mMap.addMarker(new MarkerOptions()
                 .position(latLng)
@@ -761,7 +763,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .title(title));
 
         marker.showInfoWindow();
-
 
 
         // validate if zoom is needed
@@ -777,7 +778,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -791,7 +791,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Place place = Autocomplete.getPlaceFromIntent(data);
 
                 Log.i(TAG, "Place: " + place.getName() + ", " + place.getLatLng().latitude + ", "
-                + place.getLatLng().longitude);
+                        + place.getLatLng().longitude);
 
 
 //
@@ -816,7 +816,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
                 Log.d(TAG, "moveCamera: moving the camera to lat: " + place.getLatLng().latitude + ", lgn: " +
-                            place.getLatLng().longitude );
+                        place.getLatLng().longitude);
 
                 return;
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
@@ -834,13 +834,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             if (resultCode == RESULT_OK) {
 
+                // load the data again
                 readDataFromDb(true);
 
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
 
+                // current site  to null
                 currentSite = null;
-//                oldSite = null;
+                // is possible to add to false
                 isPossibleToAdd = false;
 
 
@@ -850,10 +852,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, "onActivityResult: isSuperUser: " + currentUser.getIsSuperUser());
                 isSuperUser = currentUser.getIsSuperUser();
 
-                // init 2 sites arraylist
-//                currentSiteList = getAllSiteOfCurrentUser();
-//                oldSiteList = currentSiteList;
-                
+
                 // display the result alert dialog
                 final AlertDialog dialog1 = new AlertDialog.Builder(MapsActivity.this)
                         // validate the result of adding the item to the database
@@ -869,27 +868,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
     }
-    
-    public List<Site> getAllSiteOfCurrentUser(){
-        List<Site> sites = new ArrayList<>();
-        
-        for (Site s : siteList){
-            if (s.getUsername().equals(currentUser.getName())){
-                sites.add(s);
-            }
-        }
-        
-        return sites;
-    }
+
 
     private String PLACES_API_KEY = "AIzaSyD5Ae6wDkIace5YhId7iUSZkFbIyvB01E0";
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
+        // setup place api key
         Places.initialize(getApplicationContext(), PLACES_API_KEY);
 
         mMap = googleMap;
+        // setup polyline on click
         mMap.setOnPolylineClickListener(this);
 
 
@@ -944,10 +934,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnCameraIdleListener(clusterManager);
         mMap.setOnMarkerClickListener(clusterManager);
 
+        // set info window
         clusterManager.getMarkerCollection().setInfoWindowAdapter(new CustomInfoWindowAdaptor(MapsActivity.this, isLeader, currentUser, siteList));
 
         mMap.setInfoWindowAdapter(clusterManager.getMarkerManager());
 
+        // site render
         siteRender = new SiteRenderer(this, mMap, clusterManager);
         clusterManager.setRenderer(siteRender);
 
@@ -957,7 +949,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClusterItemInfoWindowClick(Site site) {
                 if (site.getTitle().equals("My Location")) {
-                    return ;
+                    return;
                 }
                 //TODO: Remember to turn this code below on again
                 Marker marker = mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude()))
@@ -966,17 +958,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 marker.remove();
 
 
-                return ;
+                return;
             }
         });
 
     }
+
+    // on cluster click
     @Override
     public boolean onClusterClick(Cluster cluster) {
         float zoomLevel;
-        if (mMap.getCameraPosition().zoom <14){
+        if (mMap.getCameraPosition().zoom < 14) {
             zoomLevel = 14;
-        } else{
+        } else {
             zoomLevel = mMap.getCameraPosition().zoom;
         }
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(cluster.getPosition().latitude, cluster.getPosition().longitude), zoomLevel));
@@ -987,9 +981,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onClusterItemClick(ClusterItem clusterItem) {
         float zoomLevel;
-        if (mMap.getCameraPosition().zoom <14){
+        if (mMap.getCameraPosition().zoom < 14) {
             zoomLevel = 14;
-        } else{
+        } else {
             zoomLevel = mMap.getCameraPosition().zoom;
         }
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(clusterItem.getPosition().latitude, clusterItem.getPosition().longitude), zoomLevel));
@@ -998,12 +992,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    // some permissions
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
     private boolean mLocationPermissionsGranted = false;
 
+    // requests permissions
     private void getLocationPermission() {
         String[] permissions = {FINE_LOCATION,
                 COARSE_LOCATION};
@@ -1050,7 +1046,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private Site mSelectedSite = null;
+
+
     //show dialog of register and show details
     public void showDialogDetailsRegister(Marker marker) {
 
@@ -1089,7 +1086,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if (!isLoggedIn) {
 
-                    showNegativeDialog("Error","You cannot see the details of any site!",v);
+                    showNegativeDialog("Error", "You cannot see the details of any site!", v);
                     return;
                 }
 
@@ -1114,7 +1111,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 } else {
 
                     registerDetailsDialog.dismiss();
-                    showNegativeDialog("Error","You are not the founder of this site!",v);
+                    showNegativeDialog("Error", "You are not the founder of this site!", v);
                     return;
 
                 }
@@ -1142,7 +1139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                     registerDetailsDialog.dismiss();
-                    showNegativeDialog("Error","You cannot register any site unless you login!",v);
+                    showNegativeDialog("Error", "You cannot register any site unless you login!", v);
                     return;
                 }
 
@@ -1151,7 +1148,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // show dialog
                     registerDetailsDialog.dismiss();
-                    showNegativeDialog("Error","You cannot register any site because you are a super user.",v);
+                    showNegativeDialog("Error", "You cannot register any site because you are a super user.", v);
                     return;
                 }
 
@@ -1210,7 +1207,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     public void onComplete(@NonNull Task<Void> task) {
                         // show the dialog
                         detailsDialog.dismiss();
-                        showPositiveDialog("Success","The site is successfully updated", v);
+                        showPositiveDialog("Success", "The site is successfully updated", v);
                         Log.d(TAG, "Successfully loaded the db after modify");
                     }
                 });
@@ -1229,8 +1226,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-
-
+    // show list volunteers
     private void showListVolunteer() {
 
         // create dialog component
@@ -1274,13 +1270,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // display the alert
                     listDialog.dismiss();
-                    showNegativeDialog("Announcement","There is no volunteer yet to download" ,v);
+                    showNegativeDialog("Announcement", "There is no volunteer yet to download", v);
                     return;
                 }
-
-//                File path = MapsActivity.this.getFilesDir();
-
-//                File file = new File(path, currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt");
 
                 try {
 
@@ -1291,10 +1283,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     FileOutputStream fOut = openFileOutput(currentSite.getUsername() + "-" + currentSite.getTitle() + ".txt",
                             MODE_PRIVATE);
                     ObjectOutputStream osw = new ObjectOutputStream(fOut);
-//                    FileOutputStream stream = new FileOutputStream(file);
                     // write title first
                     String titleString = "Site: " + currentSite.getTitle() + "\n";
-//                    stream.write(titleString.getBytes());
                     osw.write(titleString.getBytes());
 
                     //volunteer lists:
@@ -1310,7 +1300,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                      * really written out and close */
                     osw.flush();
                     osw.close();
-//                    stream.close();
 
 
                     listDialog.dismiss();
@@ -1341,10 +1330,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
-        String filenameExternal = currentSite.getUsername()+ "-"+currentSite.getTitle()+".txt";
+        String filenameExternal = currentSite.getUsername() + "-" + currentSite.getTitle() + ".txt";
         //Create a new file that points to the root directory, with the given name:
         File file = new File(Environment.getExternalStoragePublicDirectory(
-        Environment.DIRECTORY_DOWNLOADS), filenameExternal);
+                Environment.DIRECTORY_DOWNLOADS), filenameExternal);
 
         //This point and below is responsible for the write operation
         FileOutputStream outputStream = null;
@@ -1364,7 +1353,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             ) {
 
                 String userString = "Username: " + u.getName() + " , mail: " + u.getEmail() + "\n";
-//                        stream.write(userString.getBytes());
+
                 outputStream.write(userString.getBytes());
             }
 
@@ -1414,6 +1403,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mMap != null) {
             mMap.clear();
 
+            readDataFromDb(true);
         }
 
     }
@@ -1426,6 +1416,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    // check if user in the db
     public User getIfUserInDb(String username) {
         // validate if the user in the db
         for (User u : userList
@@ -1445,6 +1436,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     }
 
+    // validate the user in db
     public boolean checkIfUserInDb(String username) {
         // validate if the user in the db
         for (User u : userList
@@ -1464,6 +1456,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return false;
     }
 
+    // find current site when clicking into the marker
     public Site findCurrentSite(Marker marker) {
         // get the latlng
         LatLng latLng = marker.getPosition();
@@ -1488,19 +1481,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return new Site();
     }
 
+    // show the dialog for register
     public void showDialogForRegisterSite(Marker marker) {
 
         registerSiteDialog = new Dialog(MapsActivity.this);
         registerSiteDialog.setContentView(R.layout.register_site_layout);
 
-//        registerSiteDialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
 
         registerSiteDialog.show();
 
         EditText usernameTxt = registerSiteDialog.findViewById(R.id.userNameRegisterSiteText);
 
+        // yes btn
         Button btn_yes_register = registerSiteDialog.findViewById(R.id.btn_yes_register);
-
 
         btn_yes_register.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1508,15 +1501,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 boolean ifUsernameExists = checkIfUserInDb(usernameTxt.getText().toString());
 
+                // get user in db
                 User user = getIfUserInDb(usernameTxt.getText().toString());
 
                 Log.d(TAG, ifUsernameExists + " checked");
 
 
-                // validate username
+                // validate username exists
                 if (!ifUsernameExists) {
                     registerSiteDialog.dismiss();
-                    showNegativeDialog("Error","The username is not found in the database!", v);
+                    showNegativeDialog("Error", "The username is not found in the database!", v);
 
                     return;
                 }
@@ -1531,7 +1525,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (site.getUsername().equals(usernameTxt.getText().toString())) {
 
                     registerSiteDialog.dismiss();
-                    showNegativeDialog("Error","The username is already the leader of this site!", v);
+                    showNegativeDialog("Error", "The username is already the leader of this site!", v);
                     return;
                 }
 
@@ -1554,7 +1548,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // validate if user is in that site
                     if (isUserExistsInSite) {
                         registerSiteDialog.dismiss();
-                        showNegativeDialog("Error","The username already registered!", v);
+                        showNegativeDialog("Error", "The username already registered!", v);
                         return;
                     }
 
@@ -1569,32 +1563,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // update the site
                 //validate the username list in site
                 try {
-//                    usernameList.add(usernameTxt.getText().toString());
                     userList1.add(user);
                 } catch (Exception e) {
-//                    usernameList = new ArrayList<>();
-//                    usernameList.add(usernameTxt.getText().toString());
 
                     userList1 = new ArrayList<>();
                     userList1.add(user);
                 }
 
-//                site.setUserList(usernameList);
 
                 site.setUsers(userList1);
                 isZoomedIn = false;
-                //TODO: Add the site to the db
                 databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
 
                 registerSiteDialog.dismiss();
-                showPositiveDialog("Success","The user is successfully registered this site",v);
+                showPositiveDialog("Success", "The user is successfully registered this site", v);
             }
         });
     }
 
     // check the user type
     public boolean ifUserIsAbleToSeeDetails() {
-
 
         for (Site site : siteList
         ) {
@@ -1611,7 +1599,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
     // dialog used to create the new site
     private void showDialogForCreateSite(LatLng latLng) {
 
@@ -1622,19 +1609,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         createSiteDialog.show();
 
-
+        // edit text
         EditText siteNameTxt = createSiteDialog.findViewById(R.id.txttite);
 
         EditText descriptionTxt = createSiteDialog.findViewById(R.id.txtDesc);
 
+        // btn yes
         Button btn_yes = createSiteDialog.findViewById(R.id.btn_yes);
-
-        // Check the type of user
-
-//        if (isSuperUser) {
-//            btn_yes.setEnabled(false);
-//            btn_yes.setTextColor(Color.parseColor("#808080"));
-//        }
 
         btn_yes.setOnClickListener(v -> {
             // validate if the site name is null
@@ -1642,14 +1623,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 createSiteDialog.dismiss();
 
-                showNegativeDialog("Error","The site title is null! Cannot create the site" , v);
+                showNegativeDialog("Error", "The site title is null! Cannot create the site", v);
 
                 return;
             }
 
-            if (ifSiteNameExistInThatUser(siteNameTxt.getText().toString())){
-                showNegativeDialog("Error","This user already has this title for the site! Cannot create the site" , v);
-
+            // validate if the title name of the site is already existed in that user's sites
+            if (ifSiteNameExistInThatUser(siteNameTxt.getText().toString())) {
+                showNegativeDialog("Error", "This user already has this title for the site! Cannot create the site", v);
                 return;
             }
 
@@ -1660,14 +1641,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             site.setLongitude(latLng.longitude);
             site.setName(siteNameTxt.getText().toString());
             site.setDescription(descriptionTxt.getText().toString());
-            
-//            currentSiteList.add(site);
+
 
             isZoomedIn = false;
             // If not null, then add it to the db
             databaseReference.child("sites").child(site.getUsername() + "-" + site.getName()).setValue(site.toMap());
-//            firebaseHelper.addSite(site);
-            
+
             mMap.addMarker(new MarkerOptions().icon(getMarkerIconFromDrawable(drawable)).snippet(site.getDescription()).title(site.getName()).position(new LatLng(site.getLatitude(), site.getLongitude())));
 
             // set the leader to has his own site
@@ -1675,20 +1654,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             createSiteDialog.dismiss();
 
-            showPositiveDialog("Success","The site is successfully created" , v);
+            showPositiveDialog("Success", "The site is successfully created", v);
         });
 
     }
 
-    public boolean ifSiteNameExistInThatUser(String stringName){
+    // check if site name exists in the user
+    public boolean ifSiteNameExistInThatUser(String stringName) {
 
-        for (Site s: siteList
-             ) {
+        for (Site s : siteList
+        ) {
 
             // look for the user who owns the sites first
-            if (s.getUsername().equals(currentUser.getName())){
+            if (s.getUsername().equals(currentUser.getName())) {
                 // check for if the name is duplicated
-                if (stringName.equals(s.getName())){
+                if (stringName.equals(s.getName())) {
 
                     return true;
                 }
@@ -1698,7 +1678,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return false;
     }
 
-    public void showPositiveDialog(String title, String message, View v){
+    // dialog to show positive message
+    public void showPositiveDialog(String title, String message, View v) {
         // display another alert dialog
         final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                 // validate the result of adding the item to the database
@@ -1711,7 +1692,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         dialog1.show();
     }
 
-    public void showNegativeDialog(String title, String message, View v){
+    // dialog to show warning
+    public void showNegativeDialog(String title, String message, View v) {
         final AlertDialog dialog1 = new AlertDialog.Builder(v.getContext())
                 .setTitle(title)
                 .setIcon(R.drawable.ic_warning)
@@ -1723,18 +1705,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
+    // close dialog
     public void closeDialog(View view) {
         createSiteDialog.dismiss();
     }
 
 
+    // close register dialog
     public void closeRegisterSiteDialog(View view) {
         registerSiteDialog.dismiss();
         return;
     }
 
-
+// draw bitmap
     public BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
         Canvas canvas = new Canvas();
         Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
@@ -1759,6 +1742,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    // zoom route
     public void zoomRoute(List<LatLng> lstLatLngRoute) {
 
         if (mMap == null || lstLatLngRoute == null || lstLatLngRoute.isEmpty()) return;
@@ -1797,6 +1781,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Drawable drawable = getResources().getDrawable(R.drawable.my_end_location);
 
+                // add marker
                 Marker marker = mMap.addMarker(new MarkerOptions()
                         .position(endLocation)
                         .title("Trip: #" + index)
@@ -1815,8 +1800,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
+
+    @Override
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+
+        readDataFromDb(true);
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+
+        readDataFromDb(true);
+    }
+
     private static int AUTOCOMPLETE_REQUEST_CODE = 1;
 
+    // search place using api
     public void searchPlace(View view) {
 
 

@@ -96,6 +96,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     }
 
+    // load the user data
     public void loadUserData(){
 
         // load users
@@ -132,6 +133,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
+    // add to authentication
     public void addUserToAuthentication(String mail, String password){
 
         mAuth.createUserWithEmailAndPassword(mail, password)
@@ -151,7 +153,6 @@ public class RegisterActivity extends AppCompatActivity {
 
                             databaseReference.child("users").child(user1.getName()).setValue(user1.toMap());
 
-//                            firebaseHelper.addUser(user1);
                             Log.d(TAG, "Successfully added new user in Register Activity");
 
                             updateUI(user1);
@@ -169,6 +170,7 @@ public class RegisterActivity extends AppCompatActivity {
                 });
     }
 
+    //update ui
     private void updateUI(User user) {
         Intent intent = new Intent(RegisterActivity.this , LogInActivity.class);
         intent.putExtra("email" , user.getEmail());
@@ -207,12 +209,14 @@ public class RegisterActivity extends AppCompatActivity {
         String password = passwordText.getText().toString();
         String confirmPassword = confirmPasswordText.getText().toString();
 
+        // check validation
         if (!password.equals(confirmPassword)){
             passwordText.setError("The password does not match");
             confirmPasswordText.setError("The password does not match");
             return false;
         }
 
+        // check length
         if (confirmPassword.length() < 6){
             passwordText.setError("The password cannot have less than 6 characters");
             confirmPasswordText.setError("The password cannot have less than 6 characters");
@@ -223,7 +227,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
 
-
+// init service
     public void initService(){
         // Init firestone
         mAuth = FirebaseAuth.getInstance();
@@ -236,6 +240,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     }
 
+    // attach components
     public void attachComponents(){
         errorTxt = findViewById(R.id.errorTxt);
         errorTxt.setVisibility(View.INVISIBLE);
