@@ -192,7 +192,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
                                 // Sign in success, update UI with signed-in user's information
                                 Log.d(TAG, "signInWithEmail:success");
-                                Toast.makeText(LogInActivity.this, "Authentication success", Toast.LENGTH_SHORT).show();
+//                                Toast.makeText(LogInActivity.this, "Authentication success", Toast.LENGTH_SHORT).show();
 
                                 FirebaseUser userFirebase = firebaseAuth.getCurrentUser();
 
@@ -217,7 +217,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
 
                                 // if sign in fails, display a message to the user
                                 Log.w(TAG, "signInWithEmail:failure", task.getException());
-                                Toast.makeText(LogInActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+//                                Toast.makeText(LogInActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
                             }
                         }
                     });
@@ -273,7 +273,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         }else{
             // Google Sign In failed, update UI appropriately
             Log.e(TAG, "Login Unsuccessful. "+result);
-            Toast.makeText(this, "Login Unsuccessful", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Login Unsuccessful", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -287,7 +287,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         Log.d(TAG, "signInWithCredential:onComplete:" + task.isSuccessful());
                         if(task.isSuccessful()){
-                            Toast.makeText(LogInActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(LogInActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
 
                             // get the current logged in user
                             FirebaseUser userFirebase = firebaseAuth.getCurrentUser();
@@ -308,8 +308,8 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                             task.getException().printStackTrace();
                             errorLoginTxt.setVisibility(View.VISIBLE);
                             errorLoginTxt.setText("Cannot found the account in the system.\nPlease check again the password and mail");
-                            Toast.makeText(LogInActivity.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(LogInActivity.this, "Authentication failed.",
+//                                    Toast.LENGTH_SHORT).show();
                         }
 
                     }

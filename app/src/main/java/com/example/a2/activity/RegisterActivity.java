@@ -145,7 +145,7 @@ public class RegisterActivity extends AppCompatActivity {
                             // Sign in success, update UI
                             Log.d(TAG,"createUserWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-                            Toast.makeText(RegisterActivity.this, "Successfully created", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(RegisterActivity.this, "Successfully created", Toast.LENGTH_SHORT).show();
 
 
                             // create user
@@ -162,7 +162,7 @@ public class RegisterActivity extends AppCompatActivity {
                             errorTxt.setText("The gmail format is incorrect.");
 
                             Log.w(TAG,"createUserWithEmail:failure", task.getException());
-                            Toast.makeText(RegisterActivity.this, "Create account fail", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(RegisterActivity.this, "Create account fail", Toast.LENGTH_SHORT).show();
 
 
                         }

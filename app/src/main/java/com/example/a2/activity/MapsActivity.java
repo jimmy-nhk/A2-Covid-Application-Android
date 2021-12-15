@@ -3,6 +3,7 @@ package com.example.a2.activity;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -26,6 +27,7 @@ import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Location;
 import android.nfc.Tag;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -174,6 +176,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageButton signInOutBtn, currentPositionBtn, addSiteBtn;
 //    private EditText mSearchText;
 
+
+    @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -186,6 +190,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //get location permission for the map
         getLocationPermission();
 
+        ActivityCompat.requestPermissions(MapsActivity.this, new String[]{
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE},
+                0000);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -234,7 +243,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // read data again
-            readDataFromDb(true);
+            readDataFromDb(false);
         }
     }
 
@@ -379,7 +388,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         // read the db
-        readDataFromDb(true);
+        readDataFromDb(false);
 
         // reset button
         ImageButton imageButton = findViewById(R.id.refreshBtn);
@@ -678,25 +687,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // find the latlng based on the given input
     private LatLng findLatLng(String searchInput, int iTh) {
 
-        int i = 0;
+        int i = 1;
 
         // loop through the list
         for (Site s : siteList) {
 
-            if (searchInput.contains(s.getTitle()) || searchInput.contains(s.getUsername())
-                    || searchInput.contains(s.getDescription())) {
+            if (searchInput.contains(s.getTitle()) && searchInput.contains(s.getUsername()) ) {
 
-                if (i != iTh) {
-                    i++;
-                    continue;
-                }
                 // get the latLng
+                Log.d(TAG, "Here" );
                 LatLng latLng = s.getPosition();
                 Log.d(TAG, "findLocation: " + s.toString());
-                Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MapsActivity.this, s.getTitle() + "", Toast.LENGTH_SHORT).show();
                 return latLng;
             }
         }
+
 
         return null;
     }
@@ -738,7 +744,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     } else {
                         Log.d(TAG, "onComplete: current location is null!");
-                        Toast.makeText(MapsActivity.this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MapsActivity.this, "Unable to get current location", Toast.LENGTH_SHORT).show();
 
                     }
                 }
@@ -786,6 +792,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
 
+
 //                readDataFromDb(false);
 
                 Place place = Autocomplete.getPlaceFromIntent(data);
@@ -803,13 +810,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                        .title(place.getName());
 //
 //
-//                Marker marker = mMap.addMarker( new MarkerOptions()
-//                        .position(place.getLatLng())
-//                        .visible(true)
-//                        .icon(getMarkerIconFromDrawable(drawable))
-//                        .title(place.getName()));
-//
-//                marker.showInfoWindow();
 //
 //
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
@@ -835,7 +835,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (resultCode == RESULT_OK) {
 
                 // load the data again
-                readDataFromDb(true);
+                readDataFromDb(false);
 
                 isLoggedIn = true;
                 signInOutBtn.setImageResource(R.drawable.logout_image);
@@ -870,7 +870,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    private String PLACES_API_KEY = "AIzaSyD5Ae6wDkIace5YhId7iUSZkFbIyvB01E0";
+    private String PLACES_API_KEY = "AIzaSyC6CB6ZxpS-goZcAbiQUocsNw11PR12HUs";
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -887,7 +887,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setUpClusters();
 
         isZoomedIn = true;
-        getDeviceLocation();
+
+        LatLng latLng = new LatLng(10.729567, 106.6930756);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         // set on map click
@@ -995,6 +998,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // some permissions
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
+
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
     private boolean mLocationPermissionsGranted = false;
@@ -1261,6 +1265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View v) {
 
+
                 try {
                     // validate the size to 0
                     if (currentSite.getUsers().size() == 0) {
@@ -1274,33 +1279,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return;
                 }
 
+                // validate super user
+                if (isSuperUser){
+
+                    showNegativeDialog("Announcement", "You cannot download the list since you are not the leader of this site", v);
+                    return;
+                }
+
                 try {
 
                     // write to external storage
                     writeFileExternalStorage();
-
-
-                    FileOutputStream fOut = openFileOutput(currentSite.getUsername() + "-" + currentSite.getTitle() + ".txt",
-                            MODE_PRIVATE);
-                    ObjectOutputStream osw = new ObjectOutputStream(fOut);
-                    // write title first
-                    String titleString = "Site: " + currentSite.getTitle() + "\n";
-                    osw.write(titleString.getBytes());
-
-                    //volunteer lists:
-                    for (User u : currentSite.getUsers()
-                    ) {
-
-                        String userString = "Username: " + u.getName() + " , mail: " + u.getEmail() + "\n";
-//                        stream.write(userString.getBytes());
-                        osw.write(userString.getBytes());
-                    }
-
-                    /* ensure that everything is
-                     * really written out and close */
-                    osw.flush();
-                    osw.close();
-
 
                     listDialog.dismiss();
                     showPositiveDialog("Success", "The user list is successfully downloaded", v);
@@ -1317,7 +1306,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
+    // download files
     public void writeFileExternalStorage() {
 
 
@@ -1403,7 +1392,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mMap != null) {
             mMap.clear();
 
-            readDataFromDb(true);
+            readDataFromDb(false);
         }
 
     }
@@ -1557,7 +1546,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
 
-//                ArrayList<String> usernameList = site.getUserList();
                 List<User> userList1 = site.getUsers();
 
                 // update the site
@@ -1732,13 +1720,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onInfoWindowLongClick(@NonNull Marker marker) {
         marker.hideInfoWindow();
         onInfoWindowClose(marker);
-        Toast.makeText(MapsActivity.this, "Long click", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(MapsActivity.this, "Long click", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onInfoWindowClose(@NonNull Marker marker) {
         marker.hideInfoWindow();
-        Toast.makeText(MapsActivity.this, "Close click", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(MapsActivity.this, "Close click", Toast.LENGTH_SHORT).show();
 
     }
 
@@ -1801,18 +1789,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    @Override
-    protected void onResumeFragments() {
-        super.onResumeFragments();
-
-        readDataFromDb(true);
-    }
 
     @Override
     protected void onRestart() {
         super.onRestart();
 
-        readDataFromDb(true);
+        readDataFromDb(false);
     }
 
     private static int AUTOCOMPLETE_REQUEST_CODE = 1;
