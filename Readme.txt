@@ -30,6 +30,9 @@ Nguyen Hoang Khang s3802040
 
 - search place on the world
 
-2. 
+2. Technology used:
+
+
+- Notification: this is used to
 
 technology use (explain what technology that you use and its purpose)

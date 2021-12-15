@@ -104,7 +104,7 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
         signInGoogleButton = findViewById(R.id.signInWithGoogle);
 
         TextView textView = (TextView) signInGoogleButton.getChildAt(0);
-        textView.setText("Sign in Google to be a super user");
+        textView.setText("Sign in with Google");
     }
 
     // init services
@@ -295,9 +295,9 @@ public class LogInActivity extends AppCompatActivity implements GoogleApiClient.
                             Log.d(TAG, Objects.requireNonNull(userFirebase).getEmail() + " email");
 
 
-                            // if create through gg, the user is super user
+
                             // create the user
-                            User user = new User(userFirebase.getDisplayName(), userFirebase.getEmail(), true);
+                            User user = new User(userFirebase.getDisplayName(), userFirebase.getEmail(), false);
 
                             databaseReference.child("users").child(user.getName()).setValue(user.toMap());
 

@@ -1279,12 +1279,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return;
                 }
 
-                // validate super user
-                if (isSuperUser){
-
-                    showNegativeDialog("Announcement", "You cannot download the list since you are not the leader of this site", v);
-                    return;
-                }
 
                 try {
 
