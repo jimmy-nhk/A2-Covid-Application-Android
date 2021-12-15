@@ -167,6 +167,7 @@
                 android:textAlignment="center"
                 android:textSize="20dp"
                 android:inputType="number"
+                android:maxLength="10"
                 android:layout_weight="3"
                 />
 
@@ -196,6 +197,7 @@
                 android:inputType="textMultiLine"
                 android:textSize="18dp"
                 android:layout_weight="4"
+                android:maxLength="150"
                 />
 
         </LinearLayout>

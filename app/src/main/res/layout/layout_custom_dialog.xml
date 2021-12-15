@@ -66,6 +66,7 @@
                 android:layout_gravity="center_horizontal"
                 android:fontFamily="@font/roboto_black"
                 android:hint="Title name"
+                android:maxLength="20"
                 android:textColor="@color/colorBlacky"
                 android:textSize="18sp" />
 
@@ -79,6 +80,7 @@
                 android:hint="Description"
                 android:textColor="@color/colorBlacky"
                 android:paddingStart="12dp"
+                android:maxLength="150"
                 android:paddingEnd="12dp"/>
 
 

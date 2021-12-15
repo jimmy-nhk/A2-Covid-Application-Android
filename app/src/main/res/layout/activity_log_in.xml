@@ -29,6 +29,7 @@
         android:layout_height="76dp"
         android:inputType="textEmailAddress"
         android:hint="email"
+        android:maxLength="50"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
@@ -40,6 +41,7 @@
         android:id="@+id/passwordTxt"
         android:layout_width="276dp"
         android:layout_height="76dp"
+        android:maxLength="20"
 
         android:hint="password"
         android:inputType="textPassword"

@@ -1,6 +1,9 @@
 A2 - Covid volunteering site
 Nguyen Hoang Khang s3802040
 
+Super user account for testing:
+gmail: super@gmail.com
+password: 123456
 
 1. Functionalities:
 
@@ -30,9 +33,25 @@ Nguyen Hoang Khang s3802040
 
 - search place on the world
 
+
 2. Technology used:
 
 
-- Notification: this is used to
+- Notification: is used to notify the changes in the site
 
-technology use (explain what technology that you use and its purpose)
+- Dialog: is used for popping up the information of the action in the map
+
+- Map: is used to show the map to the user
+
+- Direction API: is used in routing which will find routes from the current user location to the site.
+
+- Place API: is used in searching places in map.
+
+- Firebase Realtime Database: is used in storing objects in the database. Automatically fetching and writing the data whenever the change occurs.
+
+- Firebase Authentication: is used in validating the sign in and sign up action.
+
+- CustomListAdapter: is used in customizing the list of volunteers in a site.
+
+- Cluster: is used in clustering the site together without making the map hard to read.
+
